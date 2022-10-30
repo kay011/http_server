@@ -8,6 +8,7 @@
 #include "epoll_socket.h"
 #include "http_parser.h"
 #include "easylogging++.h"
+#include "eventloop.h"
 
 struct HttpMethod
 {
@@ -54,17 +55,21 @@ public:
 class HttpServer
 {
 public:
+	HttpServer(int port);
+	~HttpServer();
 	void post(std::string path, method_handler_ptr handler);
 	void post(std::string path, json_handler_ptr handler);
 	void get(std::string path, method_handler_ptr handler);
 	void get(std::string path, json_handler_ptr handler);
 
-	int start(int port, int backlog = 10, int max_events = 1000);
+	int start();
 
 private:
-	HttpEpollWatcher http_handler_;
-
+	int port_;
 	int listen_fd_;
+	HttpEpollWatcher* http_handler_;
+	EventLoop loop_;
+	// EpollSocket* epoll_socket_;
 };
 
 #endif /* HTTP_SERVER_H_ */

@@ -13,30 +13,52 @@
 #include <sstream>
 #include "http_parser.h"
 #include "http_server.h"
+#include "utils.h"
 
-int HttpServer::start(int port, int backlog, int max_events)
+
+HttpServer::HttpServer(int port): port_(port){
+	listen_fd_ = SocketUtils::listen_on(port_, 10);
+	http_handler_ = new HttpEpollWatcher;
+	loop_.init(http_handler_);
+	int epoll_fd = loop_.get_epoll_fd();
+	struct epoll_event ev; // 注册可读事件
+    ev.events = EPOLLIN;
+    ev.data.fd = listen_fd_;
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, listen_fd_, &ev) == -1)
+    {
+        LOG(FATAL) << "epoll_ctl listen err";
+    }
+}
+HttpServer::~HttpServer(){
+	if(http_handler_ != NULL){
+		delete  http_handler_;
+		http_handler_ = NULL;
+	}
+}
+
+int HttpServer::start()
 {
-	EpollSocket().start_epoll(port, http_handler_, backlog, max_events);
+	loop_.loop(listen_fd_);
 	return 0;
 }
 
 void HttpServer::post(std::string path, method_handler_ptr handler)
 {
-	http_handler_.add_mapping(path, handler, POST_METHOD);
+	http_handler_->add_mapping(path, handler, POST_METHOD);
 }
 void HttpServer::post(std::string path, json_handler_ptr handler)
 {
-	http_handler_.add_mapping(path, handler, POST_METHOD);
+	http_handler_->add_mapping(path, handler, POST_METHOD);
 }
 
 void HttpServer::get(std::string path, method_handler_ptr handler)
 {
-	http_handler_.add_mapping(path, handler, GET_METHOD);
+	http_handler_->add_mapping(path, handler, GET_METHOD);
 }
 
 void HttpServer::get(std::string path, json_handler_ptr handler)
 {
-	http_handler_.add_mapping(path, handler, GET_METHOD);
+	http_handler_->add_mapping(path, handler, GET_METHOD);
 }
 
 void HttpEpollWatcher::add_mapping(std::string path, method_handler_ptr handler, HttpMethod method)

@@ -33,11 +33,11 @@ int main(int argc, char *argv[])
 {
     el::Configurations conf("/root/git_root/http_server_demo/conf/log.conf");
     el::Loggers::reconfigureAllLoggers(conf);
-    HttpServer http_server;
+    HttpServer http_server(3490);
 
     http_server.post("/login", login);
     http_server.get("/hello", hello);
     http_server.post("/hello2", hello2);
-    http_server.start(3490);
+    http_server.start();
     return 0;
 }
