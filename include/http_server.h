@@ -5,7 +5,7 @@
 #include <map>
 #include "sys/epoll.h"
 #include "json/json.h"
-#include "epoll_socket.h"
+#include "event_handler.h"
 #include "http_parser.h"
 #include "easylogging++.h"
 #include "eventloop.h"
@@ -29,13 +29,13 @@ struct Resource
 	json_handler_ptr json_ptr;
 };
 
-class HttpEpollWatcher : public EpollSocketWatcher
+class HttpEventHandler : public EventHandlerIface
 {
 private:
 	std::map<std::string, Resource> resource_map_;
 
 public:
-	virtual ~HttpEpollWatcher() {}
+	virtual ~HttpEventHandler() {}
 
 	void add_mapping(std::string path, method_handler_ptr handler, HttpMethod method = GET_METHOD);
 
@@ -67,7 +67,7 @@ public:
 private:
 	int port_;
 	int listen_fd_;
-	HttpEpollWatcher* http_handler_;
+	HttpEventHandler* http_handler_;
 	EventLoop loop_;
 	// EpollSocket* epoll_socket_;
 };

@@ -18,7 +18,7 @@
 
 HttpServer::HttpServer(int port): port_(port){
 	listen_fd_ = SocketUtils::listen_on(port_, 10);
-	http_handler_ = new HttpEpollWatcher;
+	http_handler_ = new HttpEventHandler;
 	loop_.init(http_handler_);
 	int epoll_fd = loop_.get_epoll_fd();
 	struct epoll_event ev; // 注册可读事件
@@ -61,19 +61,19 @@ void HttpServer::get(std::string path, json_handler_ptr handler)
 	http_handler_->add_mapping(path, handler, GET_METHOD);
 }
 
-void HttpEpollWatcher::add_mapping(std::string path, method_handler_ptr handler, HttpMethod method)
+void HttpEventHandler::add_mapping(std::string path, method_handler_ptr handler, HttpMethod method)
 {
 	Resource resource = {method, handler, NULL};
 	resource_map_[path] = resource;
 }
 
-void HttpEpollWatcher::add_mapping(std::string path, json_handler_ptr handler, HttpMethod method)
+void HttpEventHandler::add_mapping(std::string path, json_handler_ptr handler, HttpMethod method)
 {
 	Resource resource = {method, NULL, handler};
 	resource_map_[path] = resource;
 }
 
-int HttpEpollWatcher::handle_request(Request &req, Response &res)
+int HttpEventHandler::handle_request(Request &req, Response &res)
 {
 	std::string uri = req.get_request_uri();
 	if (this->resource_map_.find(uri) == this->resource_map_.end())
@@ -112,14 +112,14 @@ int HttpEpollWatcher::handle_request(Request &req, Response &res)
 	return 0;
 }
 
-int HttpEpollWatcher::on_accept(EpollContext &epoll_context)
+int HttpEventHandler::on_accept(EpollContext &epoll_context)
 {
 	int conn_sock = epoll_context.fd;
 	epoll_context.ptr = new HttpContext(conn_sock);
 	return 0;
 }
 
-int HttpEpollWatcher::on_readable(EpollContext &epoll_context, char *read_buffer, int buffer_size, int read_size)
+int HttpEventHandler::on_readable(EpollContext &epoll_context, char *read_buffer, int buffer_size, int read_size)
 {
 	HttpContext *http_context = (HttpContext *)epoll_context.ptr;
 	if (http_context->get_requset().parse_part == PARSE_REQ_LINE)
@@ -138,7 +138,7 @@ int HttpEpollWatcher::on_readable(EpollContext &epoll_context, char *read_buffer
 	return 0;
 }
 
-int HttpEpollWatcher::on_writeable(EpollContext &epoll_context)
+int HttpEventHandler::on_writeable(EpollContext &epoll_context)
 {
 	int fd = epoll_context.fd;
 	HttpContext *hc = (HttpContext *)epoll_context.ptr;
@@ -193,7 +193,7 @@ int HttpEpollWatcher::on_writeable(EpollContext &epoll_context)
 	return WRITE_CONN_CLOSE;
 }
 
-int HttpEpollWatcher::on_close(EpollContext &epoll_context)
+int HttpEventHandler::on_close(EpollContext &epoll_context)
 {
 	if (epoll_context.ptr == NULL)
 	{
