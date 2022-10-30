@@ -57,7 +57,7 @@ void EventLoop::loop(int listenfd){
         events = NULL;
     }
 }
-int EventLoop::close_and_release(int &epollfd, epoll_event &event, EventHandlerIface* socket_watcher){
+int EventLoop::close_and_release(int epollfd, epoll_event &event, EventHandlerIface* socket_watcher){
     if (event.data.ptr == NULL)
     {
         return 0;
@@ -81,7 +81,7 @@ int EventLoop::close_and_release(int &epollfd, epoll_event &event, EventHandlerI
     return ret;
 }
 
-int EventLoop::handle_accept_event(int &epollfd, epoll_event &event, EventHandlerIface* socket_watcher){
+int EventLoop::handle_accept_event(int epollfd, epoll_event &event, EventHandlerIface* socket_watcher){
     int listenfd = event.data.fd;
 
     std::string client_ip;
@@ -111,7 +111,7 @@ int EventLoop::handle_accept_event(int &epollfd, epoll_event &event, EventHandle
     return 0;
 }
 
-int EventLoop::handle_readable_event(int &epollfd, epoll_event &event, EventHandlerIface* socket_watcher){
+int EventLoop::handle_readable_event(int epollfd, epoll_event &event, EventHandlerIface* socket_watcher){
     EpollContext *epoll_context = (EpollContext *)event.data.ptr;
     int fd = epoll_context->fd;
 
@@ -150,7 +150,7 @@ int EventLoop::handle_readable_event(int &epollfd, epoll_event &event, EventHand
     return 0;
 }
 
-int EventLoop::handle_writeable_event(int &epollfd, epoll_event &event, EventHandlerIface* socket_watcher){
+int EventLoop::handle_writeable_event(int epollfd, epoll_event &event, EventHandlerIface* socket_watcher){
     EpollContext *epoll_context = (EpollContext *)event.data.ptr;
     int fd = epoll_context->fd;
     LOG(INFO) << "start write data";

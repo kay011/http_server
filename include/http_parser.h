@@ -29,12 +29,7 @@ private:
 public:
 
     std::string get_param(std::string &name);
-
     void get_params(std::string &name, std::vector<std::string> &params);
-
-    /**
-     * query_url : name=tom&age=3
-     */
     int parse_query_url(const std::string &query_url);
 };
 

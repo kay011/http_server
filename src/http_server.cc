@@ -18,8 +18,8 @@
 
 HttpServer::HttpServer(int port): port_(port){
 	listen_fd_ = SocketUtils::listen_on(port_, 10);
-	http_handler_ = new HttpEventHandler;
-	loop_.init(http_handler_);
+	http_handler_ = std::make_shared<HttpEventHandler>();
+	loop_.init(http_handler_.get());
 	int epoll_fd = loop_.get_epoll_fd();
 	struct epoll_event ev; // 注册可读事件
     ev.events = EPOLLIN;
@@ -30,10 +30,7 @@ HttpServer::HttpServer(int port): port_(port){
     }
 }
 HttpServer::~HttpServer(){
-	if(http_handler_ != NULL){
-		delete  http_handler_;
-		http_handler_ = NULL;
-	}
+
 }
 
 int HttpServer::start()
@@ -42,34 +39,34 @@ int HttpServer::start()
 	return 0;
 }
 
-void HttpServer::post(std::string path, method_handler_ptr handler)
+void HttpServer::post(std::string path, method_handler_callback handler)
 {
 	http_handler_->add_mapping(path, handler, POST_METHOD);
 }
-void HttpServer::post(std::string path, json_handler_ptr handler)
+void HttpServer::post(std::string path, json_handler_callback handler)
 {
 	http_handler_->add_mapping(path, handler, POST_METHOD);
 }
 
-void HttpServer::get(std::string path, method_handler_ptr handler)
+void HttpServer::get(std::string path, method_handler_callback handler)
 {
 	http_handler_->add_mapping(path, handler, GET_METHOD);
 }
 
-void HttpServer::get(std::string path, json_handler_ptr handler)
+void HttpServer::get(std::string path, json_handler_callback handler)
 {
 	http_handler_->add_mapping(path, handler, GET_METHOD);
 }
 
-void HttpEventHandler::add_mapping(std::string path, method_handler_ptr handler, HttpMethod method)
+void HttpEventHandler::add_mapping(std::string path, method_handler_callback handler, HttpMethod method)
 {
-	Resource resource = {method, handler, NULL};
+	Resource resource = {method, handler, nullptr};
 	resource_map_[path] = resource;
 }
 
-void HttpEventHandler::add_mapping(std::string path, json_handler_ptr handler, HttpMethod method)
+void HttpEventHandler::add_mapping(std::string path, json_handler_callback handler, HttpMethod method)
 {
-	Resource resource = {method, NULL, handler};
+	Resource resource = {method, nullptr, handler};
 	resource_map_[path] = resource;
 }
 
@@ -97,16 +94,16 @@ int HttpEventHandler::handle_request(Request &req, Response &res)
 		return 0;
 	}
 
-	if (resource.json_ptr != NULL)
+	if (resource.json_handler_cb != nullptr)
 	{
 		Json::Value root;
 		// 改为线程池
-		resource.json_ptr(req, root);
+		resource.json_handler_cb(req, root);
 		res.set_body(root);
 	}
-	else if (resource.handler_ptr != NULL)
+	else if (resource.method_handler_cb != nullptr)
 	{
-		resource.handler_ptr(req, res);
+		resource.method_handler_cb(req, res);
 	}
 	LOG(INFO) << "handle response success which code" << res.code_msg.status_code << ", msg: " << res.code_msg.msg.c_str();
 	return 0;

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+#include <functional>
 #include "sys/epoll.h"
 #include "json/json.h"
 #include "event_handler.h"
@@ -19,37 +20,34 @@ struct HttpMethod
 const static HttpMethod GET_METHOD = {1, "GET"};
 const static HttpMethod POST_METHOD = {2, "POST"};
 
-typedef void (*method_handler_ptr)(Request &request, Response &response);
-typedef void (*json_handler_ptr)(Request &request, Json::Value &response);
+typedef std::function<void(Request &request, Response &response)> method_handler_callback;
+typedef std::function<void(Request &request, Json::Value &response)> json_handler_callback;
 
 struct Resource
 {
 	HttpMethod method;
-	method_handler_ptr handler_ptr;
-	json_handler_ptr json_ptr;
+	method_handler_callback method_handler_cb;
+	json_handler_callback json_handler_cb;
 };
 
 class HttpEventHandler : public EventHandlerIface
 {
-private:
-	std::map<std::string, Resource> resource_map_;
-
 public:
-	virtual ~HttpEventHandler() {}
+	
 
-	void add_mapping(std::string path, method_handler_ptr handler, HttpMethod method = GET_METHOD);
+	void add_mapping(std::string path, method_handler_callback handler, HttpMethod method = GET_METHOD);
 
-	void add_mapping(std::string path, json_handler_ptr handler, HttpMethod method = GET_METHOD);
+	void add_mapping(std::string path, json_handler_callback handler, HttpMethod method = GET_METHOD);
 
 	int handle_request(Request &request, Response &response);
-
-	virtual int on_accept(EpollContext &epoll_context);
-
-	virtual int on_readable(EpollContext &epoll_context, char *read_buffer, int buffer_size, int read_size);
-
-	virtual int on_writeable(EpollContext &epoll_context);
-
-	virtual int on_close(EpollContext &epoll_context);
+public:
+	virtual ~HttpEventHandler() {}
+	int on_accept(EpollContext &epoll_context) override;
+	int on_readable(EpollContext &epoll_context, char *read_buffer, int buffer_size, int read_size) override;
+	int on_writeable(EpollContext &epoll_context) override;
+	int on_close(EpollContext &epoll_context) override;
+private:
+	std::map<std::string, Resource> resource_map_;
 };
 
 class HttpServer
@@ -57,19 +55,18 @@ class HttpServer
 public:
 	HttpServer(int port);
 	~HttpServer();
-	void post(std::string path, method_handler_ptr handler);
-	void post(std::string path, json_handler_ptr handler);
-	void get(std::string path, method_handler_ptr handler);
-	void get(std::string path, json_handler_ptr handler);
+	void post(std::string path, method_handler_callback handler);
+	void post(std::string path, json_handler_callback handler);
+	void get(std::string path, method_handler_callback handler);
+	void get(std::string path, json_handler_callback handler);
 
 	int start();
 
 private:
 	int port_;
 	int listen_fd_;
-	HttpEventHandler* http_handler_;
+	std::shared_ptr<HttpEventHandler> http_handler_;
 	EventLoop loop_;
-	// EpollSocket* epoll_socket_;
 };
 
 #endif /* HTTP_SERVER_H_ */
