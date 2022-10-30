@@ -17,8 +17,6 @@ void register_router(HttpServer& http_server){
     http_server.post("/hello2", hello2);
 }
 
-
-
 /*****   main ****/
 int main(int argc, char *argv[])
 {

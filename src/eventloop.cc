@@ -6,22 +6,25 @@
 #include <cstdlib>
 #include <cstdio>
 
+EventLoop::EventLoop(){
+    poller_ = std::make_shared<Epoll>();
+}
+
+EventLoop::~EventLoop(){
+
+}
 
 void EventLoop::init(EventHandlerIface* socket_watcher){
     socket_watcher_ = socket_watcher;
-    epoll_fd_ = epoll_create(1024);
-    if (epoll_fd_ == -1)
-    {
-        LOG(FATAL) << "epoll_create err";
-    }
 }  
 
 void EventLoop::loop(int listenfd){
     int max_events = 1000;
     epoll_event *events = new epoll_event[max_events];
-    while (1)
+    while (true)
     {
-        int fds_num = epoll_wait(epoll_fd_, events, max_events, -1);
+        int fds_num = this->poller_->poller(events, max_events);
+        // int fds_num = epoll_wait(this->get_epoll_fd(), events, max_events, -1);
         if (fds_num == -1)
         {
             LOG(ERROR) << "epoll_wait err";
@@ -32,17 +35,17 @@ void EventLoop::loop(int listenfd){
             if (events[i].data.fd == listenfd)
             {
                 // accept connection
-                this->handle_accept_event(epoll_fd_, events[i], socket_watcher_);
+                this->handle_accept_event(events[i], socket_watcher_);
             }
             else if (events[i].events & EPOLLIN)
             {
                 // readable
-                this->handle_readable_event(epoll_fd_, events[i], socket_watcher_);
+                this->handle_readable_event(events[i], socket_watcher_);
             }
             else if (events[i].events & EPOLLOUT)
             {
                 // writeable
-                this->handle_writeable_event(epoll_fd_, events[i], socket_watcher_);
+                this->handle_writeable_event(events[i], socket_watcher_);
             }
             else
             {
@@ -57,7 +60,19 @@ void EventLoop::loop(int listenfd){
         events = NULL;
     }
 }
-int EventLoop::close_and_release(int epollfd, epoll_event &event, EventHandlerIface* socket_watcher){
+
+void EventLoop::add_to_poller(int fd, epoll_event &event){
+    poller_->add_to_poller(fd, event);
+}
+void EventLoop::update_to_poller(int fd, epoll_event &event){
+    poller_->update_to_poller(fd, event);
+}
+void EventLoop::remove_from_poller(int fd, epoll_event &event){
+    poller_->remove_from_poller(fd, event);
+}
+
+
+int EventLoop::close_and_release(epoll_event &event, EventHandlerIface* socket_watcher){
     if (event.data.ptr == NULL)
     {
         return 0;
@@ -71,7 +86,8 @@ int EventLoop::close_and_release(int epollfd, epoll_event &event, EventHandlerIf
 
     int fd = hc->fd;
     event.events = EPOLLIN | EPOLLOUT | EPOLLET;
-    epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, &event);
+    this->remove_from_poller(fd, event);
+    // epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, &event);
 
     delete (EpollContext *)event.data.ptr;
     event.data.ptr = NULL;
@@ -81,7 +97,7 @@ int EventLoop::close_and_release(int epollfd, epoll_event &event, EventHandlerIf
     return ret;
 }
 
-int EventLoop::handle_accept_event(int epollfd, epoll_event &event, EventHandlerIface* socket_watcher){
+int EventLoop::handle_accept_event(epoll_event &event, EventHandlerIface* socket_watcher){
     int listenfd = event.data.fd;
 
     std::string client_ip;
@@ -99,19 +115,16 @@ int EventLoop::handle_accept_event(int epollfd, epoll_event &event, EventHandler
 
     socket_watcher->on_accept(*epoll_context);
 
+    // this->poller_->add_to_poller(conn_sock, EPOLLIN | EPOLLET, epoll_context);
     struct epoll_event conn_sock_ev;
     conn_sock_ev.events = EPOLLIN | EPOLLET;
     conn_sock_ev.data.ptr = epoll_context;
-
-    if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &conn_sock_ev) == -1)
-    {
-        LOG(FATAL) << "epoll_ctl err";
-    }
+    this->add_to_poller(conn_sock, conn_sock_ev);
 
     return 0;
 }
 
-int EventLoop::handle_readable_event(int epollfd, epoll_event &event, EventHandlerIface* socket_watcher){
+int EventLoop::handle_readable_event(epoll_event &event, EventHandlerIface* socket_watcher){
     EpollContext *epoll_context = (EpollContext *)event.data.ptr;
     int fd = epoll_context->fd;
 
@@ -134,7 +147,7 @@ int EventLoop::handle_readable_event(int epollfd, epoll_event &event, EventHandl
 
     if (read_size <= 0 || handle_ret < 0)
     {
-        close_and_release(epollfd, event, socket_watcher);
+        close_and_release(event, socket_watcher);
         return 0;
     }
 
@@ -146,11 +159,12 @@ int EventLoop::handle_readable_event(int epollfd, epoll_event &event, EventHandl
     {
         event.events = EPOLLOUT | EPOLLET;
     }
-    epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &event);
+    // epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &event);
+    this->update_to_poller(fd, event);
     return 0;
 }
 
-int EventLoop::handle_writeable_event(int epollfd, epoll_event &event, EventHandlerIface* socket_watcher){
+int EventLoop::handle_writeable_event(epoll_event &event, EventHandlerIface* socket_watcher){
     EpollContext *epoll_context = (EpollContext *)event.data.ptr;
     int fd = epoll_context->fd;
     LOG(INFO) << "start write data";
@@ -158,7 +172,7 @@ int EventLoop::handle_writeable_event(int epollfd, epoll_event &event, EventHand
     int ret = socket_watcher->on_writeable(*epoll_context);
     if (ret == WRITE_CONN_CLOSE)
     {
-        close_and_release(epollfd, event, socket_watcher);  // 断开
+        close_and_release(event, socket_watcher);  // 断开
         return 0;
     }
 
@@ -170,6 +184,7 @@ int EventLoop::handle_writeable_event(int epollfd, epoll_event &event, EventHand
     {
         event.events = EPOLLIN | EPOLLET; // 长连接
     }
-    epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &event);
+    this->update_to_poller(fd, event);
+    // epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &event);
     return 0;
 }

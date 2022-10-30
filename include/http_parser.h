@@ -5,23 +5,48 @@
 #include <sstream>
 #include <map>
 #include <vector>
+#include <functional>
 #include <sys/time.h>
 #include "json/json.h"
 #include "easylogging++.h"
+
+#define RequestBody RequestParam
+
+class Request;
+class Response;
+
+typedef std::function<void(Request &request, Response &response)> method_handler_callback;
+typedef std::function<void(Request &request, Json::Value &response)> json_handler_callback;
+
+struct HttpMethod
+{
+	int code;
+	std::string name;
+};
+
+struct Resource
+{
+	HttpMethod method;
+	method_handler_callback method_handler_cb;
+	json_handler_callback json_handler_cb;
+};
 
 struct CodeMsg {
 	int status_code;
 	std::string msg;
 };
 
-const static CodeMsg STATUS_OK = {200, "OK"};
-const static CodeMsg STATUS_NOT_FOUND = {404, "Not Found"};
-const static CodeMsg STATUS_METHOD_NOT_ALLOWED = {405, "Method Not Allowed"};
+const  HttpMethod GET_METHOD = {1, "GET"};
+const  HttpMethod POST_METHOD = {2, "POST"};
 
-const static int PARSE_REQ_LINE = 0;
-const static int PARSE_REQ_HEAD = 1;
-const static int PARSE_REQ_BODY = 2;
-const static int PARSE_REQ_OVER = 3;
+const CodeMsg STATUS_OK = {200, "OK"};
+const CodeMsg STATUS_NOT_FOUND = {404, "Not Found"};
+const CodeMsg STATUS_METHOD_NOT_ALLOWED = {405, "Method Not Allowed"};
+
+const int PARSE_REQ_LINE = 0;
+const int PARSE_REQ_HEAD = 1;
+const int PARSE_REQ_BODY = 2;
+const int PARSE_REQ_OVER = 3;
 
 class RequestParam {
 private:
@@ -66,9 +91,6 @@ private:
      */
     int parse_request_url_params();
 };
-
-
-#define RequestBody RequestParam
 
 class Request {
 private:
