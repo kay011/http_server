@@ -1,0 +1,220 @@
+2022-10-29 14:37:12,918 INFO [default] start Server Socket on port: 3490
+2022-10-29 14:37:26,792 INFO [default] server: got connection from 127.0.0.1
+2022-10-29 14:37:26,792 INFO [default] get accept socket which listen fd:4,conn_sock_fd: 6
+2022-10-29 14:37:26,792 INFO [default] read success which read size: 169
+2022-10-29 14:37:26,792 INFO [default] read from client: size: 169, content:POST /login HTTP/1.1
+Host: 127.0.0.1:3490
+User-Agent: curl/7.61.1
+Accept: */*
+Content-Length: 16
+Content-Type: application/x-www-form-urlencoded
+
+name=123&pwd=123
+2022-10-29 14:37:26,792 INFO [default] 0x95d270
+2022-10-29 14:38:50,046 INFO [default] start Server Socket on port: 3490
+2022-10-29 14:38:54,051 INFO [default] server: got connection from 127.0.0.1
+2022-10-29 14:38:54,051 INFO [default] get accept socket which listen fd:4,conn_sock_fd: 6
+2022-10-29 14:38:54,051 INFO [default] read success which read size: 169
+2022-10-29 14:38:54,051 INFO [default] read from client: size: 169, content:POST /login HTTP/1.1
+Host: 127.0.0.1:3490
+User-Agent: curl/7.61.1
+Accept: */*
+Content-Length: 16
+Content-Type: application/x-www-form-urlencoded
+
+name=123&pwd=123
+2022-10-29 14:38:54,051 INFO [default] 0x139a270
+2022-10-29 14:38:54,051 ERROR [default] check_req_over err
+2022-10-29 14:42:03,494 INFO [default] server: got connection from 111.198.231.18
+2022-10-29 14:42:03,494 INFO [default] get accept socket which listen fd:4,conn_sock_fd: 7
+2022-10-29 14:42:03,496 INFO [default] read success which read size: 258
+2022-10-29 14:42:03,496 INFO [default] read from client: size: 258, content:POST /login HTTP/1.1
+User-Agent: apifox/1.0.0 (https://www.apifox.cn)
+Accept: */*
+Host: 82.156.48.188:3490
+Accept-Encoding: gzip, deflate, br
+Connection: keep-alive
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 16
+
+name=123&pwd=123
+2022-10-29 14:42:03,496 INFO [default] 0x139de50
+2022-10-29 14:42:03,496 ERROR [default] check_req_over err
+2022-10-29 14:44:51,352 INFO [default] start Server Socket on port: 3490
+2022-10-29 14:44:54,518 INFO [default] server: got connection from 111.198.231.18
+2022-10-29 14:44:54,518 INFO [default] get accept socket which listen fd:4,conn_sock_fd: 6
+2022-10-29 14:44:54,519 INFO [default] read success which read size: 258
+2022-10-29 14:44:54,519 INFO [default] read from client: size: 258, content:POST /login HTTP/1.1
+User-Agent: apifox/1.0.0 (https://www.apifox.cn)
+Accept: */*
+Host: 82.156.48.188:3490
+Accept-Encoding: gzip, deflate, br
+Connection: keep-alive
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 16
+
+name=123&pwd=123
+2022-10-29 14:44:54,519 INFO [default] POST /login HTTP/1.1
+User-Agent: apifox/1.0.0 (https://www.apifox.cn)
+Accept: */*
+Host: 82.156.48.188:3490
+Accept-Encoding: gzip, deflate, br
+Connection: keep-alive
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 16
+
+name=123&pwd=123
+2022-10-29 14:44:54,519 INFO [default] 0x1b92270
+2022-10-29 14:44:54,519 ERROR [default] check_req_over err
+2022-10-29 14:46:15,821 INFO [default] start Server Socket on port: 3490
+2022-10-29 14:46:21,396 INFO [default] server: got connection from 111.198.231.18
+2022-10-29 14:46:21,396 INFO [default] get accept socket which listen fd:4,conn_sock_fd: 6
+2022-10-29 14:46:21,397 INFO [default] read success which read size: 172
+2022-10-29 14:46:21,397 INFO [default] read from client: size: 172, content:GET /hello HTTP/1.1
+User-Agent: apifox/1.0.0 (https://www.apifox.cn)
+Accept: */*
+Host: 82.156.48.188:3490
+Accept-Encoding: gzip, deflate, br
+Connection: keep-alive
+
+
+2022-10-29 14:46:21,397 INFO [default] GET /hello HTTP/1.1
+User-Agent: apifox/1.0.0 (https://www.apifox.cn)
+Accept: */*
+Host: 82.156.48.188:3490
+Accept-Encoding: gzip, deflate, br
+Connection: keep-alive
+
+
+2022-10-29 14:46:21,397 INFO [default] 0x25b4270
+2022-10-29 14:46:21,397 INFO [default] yhd test
+2022-10-29 14:46:21,397 INFO [default] start parse req_line line: GET /hello HTTP/1.1
+2022-10-29 14:46:21,397 INFO [default] start parse params which request_url: /hello
+2022-10-29 14:46:21,397 INFO [default] request_in hello
+2022-10-29 14:46:21,397 INFO [default] handle response success which code200, msg: OK
+2022-10-29 14:46:21,397 INFO [default] start write data
+2022-10-29 14:46:21,398 INFO [default] send complete which write_num: 168, read_size: 168
+2022-10-29 14:46:21,398 INFO [default] access_log GET /hello status_code:200 cost_time:395us, body_size:32, client_ip:111.198.231.18
+2022-10-29 14:52:02,673 INFO [default] start Server Socket on port: 3490
+2022-10-29 14:52:05,447 INFO [default] server: got connection from 111.198.231.18
+2022-10-29 14:52:05,447 INFO [default] get accept socket which listen fd:4,conn_sock_fd: 6
+2022-10-29 14:52:05,451 INFO [default] read success which read size: 172
+2022-10-29 14:52:05,451 INFO [default] read from client: size: 172
+2022-10-29 14:52:05,451 INFO [default] GET /hello HTTP/1.1
+User-Agent: apifox/1.0.0 (https://www.apifox.cn)
+Accept: */*
+Host: 82.156.48.188:3490
+Accept-Encoding: gzip, deflate, br
+Connection: keep-alive
+
+
+2022-10-29 14:52:05,451 INFO [default] 
+
+þ
+2022-10-29 14:52:05,451 INFO [default] yhd test
+2022-10-29 14:52:05,451 INFO [default] start parse req_line line: GET /hello HTTP/1.1
+2022-10-29 14:52:05,451 INFO [default] start parse params which request_url: /hello
+2022-10-29 14:52:05,451 INFO [default] request_in hello
+2022-10-29 14:52:05,451 INFO [default] handle response success which code200, msg: OK
+2022-10-29 14:52:05,451 INFO [default] start write data
+2022-10-29 14:52:05,451 INFO [default] send complete which write_num: 168, read_size: 168
+2022-10-29 14:52:05,452 INFO [default] access_log GET /hello status_code:200 cost_time:396us, body_size:32, client_ip:111.198.231.18
+2022-10-29 14:52:24,466 INFO [default] read success which read size: 258
+2022-10-29 14:52:24,466 INFO [default] read from client: size: 258
+2022-10-29 14:52:24,466 INFO [default] POST /login HTTP/1.1
+User-Agent: apifox/1.0.0 (https://www.apifox.cn)
+Accept: */*
+Host: 82.156.48.188:3490
+Accept-Encoding: gzip, deflate, br
+Connection: keep-alive
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 16
+
+name=123&pwd=123
+2022-10-29 14:52:24,466 INFO [default] =123þ
+2022-10-29 14:52:24,466 ERROR [default] check_req_over err
+2022-10-29 14:55:24,476 INFO [default] connect close
+2022-10-29 14:55:24,476 INFO [default] connect close complete which fd: 6, ret: 0
+2022-10-29 14:55:42,768 INFO [default] server: got connection from 111.198.231.18
+2022-10-29 14:55:42,768 INFO [default] get accept socket which listen fd:4,conn_sock_fd: 6
+2022-10-29 14:55:42,769 INFO [default] read success which read size: 172
+2022-10-29 14:55:42,769 INFO [default] read from client: size: 172
+2022-10-29 14:55:42,769 INFO [default] GET /hello HTTP/1.1
+User-Agent: apifox/1.0.0 (https://www.apifox.cn)
+Accept: */*
+Host: 82.156.48.188:3490
+Accept-Encoding: gzip, deflate, br
+Connection: keep-alive
+
+
+2022-10-29 14:55:42,769 INFO [default] 
+
+þ
+2022-10-29 14:55:42,769 INFO [default] yhd test
+2022-10-29 14:55:42,769 INFO [default] start parse req_line line: GET /hello HTTP/1.1
+2022-10-29 14:55:42,769 INFO [default] start parse params which request_url: /hello
+2022-10-29 14:55:42,769 INFO [default] request_in hello
+2022-10-29 14:55:42,769 INFO [default] handle response success which code200, msg: OK
+2022-10-29 14:55:42,769 INFO [default] start write data
+2022-10-29 14:55:42,769 INFO [default] send complete which write_num: 168, read_size: 168
+2022-10-29 14:55:42,769 INFO [default] access_log GET /hello status_code:200 cost_time:293us, body_size:32, client_ip:111.198.231.18
+2022-10-29 14:59:20,526 INFO [default] start Server Socket on port: 3490
+2022-10-29 14:59:24,663 INFO [default] server: got connection from 111.198.231.18
+2022-10-29 14:59:24,663 INFO [default] get accept socket which listen fd:4,conn_sock_fd: 6
+2022-10-29 14:59:24,665 INFO [default] read success which read size: 172
+2022-10-29 14:59:24,665 INFO [default] read from client: size: 172
+2022-10-29 14:59:24,665 INFO [default] GET /hello HTTP/1.1
+User-Agent: apifox/1.0.0 (https://www.apifox.cn)
+Accept: */*
+Host: 82.156.48.188:3490
+Accept-Encoding: gzip, deflate, br
+Connection: keep-alive
+
+
+2022-10-29 14:59:24,665 INFO [default] yhd test
+2022-10-29 14:59:24,665 INFO [default] start parse req_line line: GET /hello HTTP/1.1
+2022-10-29 14:59:24,665 INFO [default] start parse params which request_url: /hello
+2022-10-29 14:59:24,665 INFO [default] request_in hello
+2022-10-29 14:59:24,665 INFO [default] handle response success which code200, msg: OK
+2022-10-29 14:59:24,665 INFO [default] start write data
+2022-10-29 14:59:24,665 INFO [default] send complete which write_num: 168, read_size: 168
+2022-10-29 14:59:24,665 INFO [default] access_log GET /hello status_code:200 cost_time:364us, body_size:32, client_ip:111.198.231.18
+2022-10-29 15:05:26,287 INFO [default] start Server Socket on port: 3490
+2022-10-29 15:05:32,024 INFO [default] server: got connection from 111.198.231.18
+2022-10-29 15:05:32,024 INFO [default] get accept socket which listen fd:4,conn_sock_fd: 6
+2022-10-29 15:05:32,028 INFO [default] read success which read size: 172
+2022-10-29 15:05:32,028 INFO [default] read from client: size: 172
+2022-10-29 15:05:32,028 INFO [default] yhd test
+2022-10-29 15:05:32,028 INFO [default] start parse req_line line: GET /hello HTTP/1.1
+2022-10-29 15:05:32,028 INFO [default] start parse params which request_url: /hello
+2022-10-29 15:05:32,028 INFO [default] request_in hello
+2022-10-29 15:05:32,028 INFO [default] handle response success which code200, msg: OK
+2022-10-29 15:05:32,028 INFO [default] start write data
+2022-10-29 15:05:32,028 INFO [default] send complete which write_num: 168, read_size: 168
+2022-10-29 15:05:32,028 INFO [default] access_log GET /hello status_code:200 cost_time:318us, body_size:32, client_ip:111.198.231.18
+2022-10-29 15:05:38,007 INFO [default] read success which read size: 258
+2022-10-29 15:05:38,007 INFO [default] read from client: size: 258
+2022-10-29 15:05:38,007 INFO [default] yhd test
+2022-10-29 15:05:38,007 INFO [default] start parse req_line line: POST /login HTTP/1.1
+2022-10-29 15:05:38,008 INFO [default] start parse params which request_url: /login
+2022-10-29 15:05:38,008 INFO [default] start parse_query_url: name=123&pwd=123
+2022-10-29 15:05:38,008 INFO [default] get key_value: name=123
+2022-10-29 15:05:38,008 INFO [default] get key_value: pwd=123
+2022-10-29 15:05:38,008 INFO [default] not allow method, allowed: GET, request method: POST
+2022-10-29 15:05:38,008 INFO [default] start write data
+2022-10-29 15:05:38,008 INFO [default] send complete which write_num: 163, read_size: 163
+2022-10-29 15:05:38,008 INFO [default] access_log POST /login status_code:405 cost_time:270us, body_size:0, client_ip:111.198.231.18
+2022-10-29 15:06:14,000 INFO [default] server: got connection from 180.101.245.248
+2022-10-29 15:06:14,001 INFO [default] get accept socket which listen fd:4,conn_sock_fd: 7
+2022-10-29 15:06:14,001 INFO [default] read success which read size: 421
+2022-10-29 15:06:14,001 INFO [default] read from client: size: 421
+2022-10-29 15:06:14,001 INFO [default] yhd test
+2022-10-29 15:06:14,001 INFO [default] start parse req_line line: GET /hello HTTP/1.1
+2022-10-29 15:06:14,001 INFO [default] start parse params which request_url: /hello
+2022-10-29 15:06:14,001 INFO [default] request_in hello
+2022-10-29 15:06:14,001 INFO [default] handle response success which code200, msg: OK
+2022-10-29 15:06:14,001 INFO [default] start write data
+2022-10-29 15:06:14,001 INFO [default] send complete which write_num: 168, read_size: 168
+2022-10-29 15:06:14,001 INFO [default] access_log GET /hello status_code:200 cost_time:248us, body_size:32, client_ip:180.101.245.248
+2022-10-29 15:06:14,188 INFO [default] connect close
+2022-10-29 15:06:14,188 INFO [default] connect close complete which fd: 7, ret: 0

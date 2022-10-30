@@ -1,0 +1,14 @@
+#ifndef GLOBAL_H
+#define GLOBAL_H
+
+#define SS_WRITE_BUFFER_SIZE 4096
+#define SS_READ_BUFFER_SIZE 4096
+
+#define WRITE_CONN_ALIVE 0
+#define WRITE_CONN_CLOSE 1
+#define WRITE_CONN_CONTINUE 2
+
+#define READ_OVER 0
+#define READ_CONTINUE 1
+
+#endif

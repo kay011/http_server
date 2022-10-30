@@ -1,0 +1,4 @@
+/root/git_root/http_server_demo/build/CMakeFiles/rebuild_cache.dir
+/root/git_root/http_server_demo/build/CMakeFiles/edit_cache.dir
+/root/git_root/http_server_demo/build/CMakeFiles/http_server.dir
+/root/git_root/http_server_demo/build/CMakeFiles/http_server_test.dir
