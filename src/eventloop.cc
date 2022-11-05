@@ -23,13 +23,37 @@ void EventLoop::loop(int listenfd){
     epoll_event *events = new epoll_event[max_events];
     while (true)
     {
-        int fds_num = this->poller_->poller(events, max_events);
+        // 定时事件
+        // 从一个map中取最近即将超时的事件
+        // for(auto it = fd2expire_time_.begin(); it != fd2expire_time_.end(); ++it){
+        //     LOG(INFO) << "fd: " <<it->first << "-" << "expire_time: " << it->second;
+        // }
+        // LOG(INFO) << "yhd_size: " <<fd2expire_time_.size();
+        int timeout = -1;
+        LOG(INFO) << "timer_manager_.size(): " << timer_manager_.size();
+        if(timer_manager_.size() > 0){
+            LOG(INFO) << "yhd_test";
+            TimeNode tn = timer_manager_.GetNearbyTimeNode();
+            std::chrono::milliseconds now_ms = std::chrono::duration_cast< std::chrono::milliseconds >(
+                std::chrono::system_clock::now().time_since_epoch());
+            long diff_time = now_ms.count() - tn.last_active_time_;
+            LOG(INFO) << "yhd diff_time: " << diff_time;
+            if (diff_time - EXPIRE_TIME >= 0) // 说明已经有超时事件了
+            {
+                timeout = 0;
+            } else {    // 说明最近的还没有超时
+                timeout = EXPIRE_TIME - diff_time;
+            }
+        }
+        LOG(INFO) << "timeout: " << timeout;
+        int fds_num = this->poller_->poller(events, max_events, timeout);
         // int fds_num = epoll_wait(this->get_epoll_fd(), events, max_events, -1);
+        // LOG(INFO) << "fds_num" << fds_num;
         if (fds_num == -1)
         {
             LOG(ERROR) << "epoll_wait err";
         }
-
+        // 处理文件事件
         for (int i = 0; i < fds_num; i++)
         {
             if (events[i].data.fd == listenfd)
@@ -52,6 +76,9 @@ void EventLoop::loop(int listenfd){
                 LOG(WARNING) << "unkonw events :" << events[i].events;
             }
         }
+
+        // 处理时间事件
+        this->handle_timeout_event();
     }
 
     if (events != NULL)
@@ -82,16 +109,23 @@ int EventLoop::close_and_release(epoll_event &event, EventHandlerIface* socket_w
 
     EpollContext *hc = (EpollContext *)event.data.ptr;
 
-    socket_watcher->on_close(*hc);
+    __close_and_release(hc);
+    return 0;
+}
 
-    int fd = hc->fd;
-    event.events = EPOLLIN | EPOLLOUT | EPOLLET;
+int EventLoop::__close_and_release(EpollContext* context){
+    LOG(INFO) << "access __close_and_release";
+    socket_watcher_->on_close(*context);
+    int fd = context->fd;
+    struct epoll_event event;
+    event.data.fd = fd;
+    // event.events = EPOLLIN | EPOLLOUT | EPOLLET;
     this->remove_from_poller(fd, event);
     // epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, &event);
-
-    delete (EpollContext *)event.data.ptr;
-    event.data.ptr = NULL;
-
+    if (context != NULL){
+        delete context;
+        context = NULL;
+    }
     int ret = close(fd);
     LOG(INFO) << "connect close complete which fd: " << fd << ", ret: " << ret;
     return ret;
@@ -112,6 +146,8 @@ int EventLoop::handle_accept_event(epoll_event &event, EventHandlerIface* socket
     EpollContext *epoll_context = new EpollContext();
     epoll_context->fd = conn_sock;
     epoll_context->client_ip = client_ip;
+    this->fd2context_[conn_sock]  = epoll_context;
+    this->timer_manager_.AddToTimer(epoll_context);
 
     socket_watcher->on_accept(*epoll_context);
 
@@ -180,11 +216,40 @@ int EventLoop::handle_writeable_event(epoll_event &event, EventHandlerIface* soc
     {
         event.events = EPOLLOUT | EPOLLET;
     }
-    else
+    else // WRITE_CONN_ALIVE
     {
         event.events = EPOLLIN | EPOLLET; // 长连接
     }
     this->update_to_poller(fd, event);
     // epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &event);
+    return 0;
+}
+
+int EventLoop::handle_timeout_event(){
+    LOG(INFO) << "yhd access handle_timeout_event";
+    LOG(INFO) << "yhd timer_manager_.size(): " << timer_manager_.size();
+    while(timer_manager_.size() > 0){
+        // 先取出top
+        TimeNode tn =timer_manager_.GetNearbyTimeNode();
+        std::chrono::milliseconds now_ms = std::chrono::duration_cast< std::chrono::milliseconds >(
+            std::chrono::system_clock::now().time_since_epoch());
+        long diff_time = now_ms.count() - tn.last_active_time_;
+        LOG(INFO) << "diff_time: " << diff_time;
+        if(diff_time - EXPIRE_TIME >= 0){
+            if(tn.ptr_ == NULL){
+                timer_manager_.PopTopTimeNode();
+                continue;
+            }
+            EpollContext* context = (EpollContext*)tn.ptr_;
+            // 断开连接
+            __close_and_release(context);
+            // 清理内存
+            fd2context_.erase(context->fd);
+
+            timer_manager_.PopTopTimeNode();
+        } else {
+            break;
+        }
+    }
     return 0;
 }

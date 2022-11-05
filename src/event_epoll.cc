@@ -13,9 +13,9 @@ Epoll::Epoll(){
 Epoll::~Epoll(){
 
 }
-int Epoll::poller(epoll_event* events, int max_events){
+int Epoll::poller(epoll_event* events, int max_events, int timeout){
     // TODO
-    int fds_num = epoll_wait(epoll_fd_, events, max_events, -1);
+    int fds_num = epoll_wait(epoll_fd_, events, max_events, timeout);
     return fds_num;
 }
 void Epoll::add_to_poller(int fd, epoll_event &event){

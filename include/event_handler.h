@@ -6,9 +6,8 @@
 #include "easylogging++.h"
 #include "global.h"
 #include "http_parser.h"
-class EpollContext
+struct EpollContext
 {
-public:
 	void *ptr;
 	int fd;
 	std::string client_ip;

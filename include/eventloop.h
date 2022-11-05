@@ -3,6 +3,9 @@
 #include "event_handler.h"
 #include "event_epoll.h"
 #include <memory>
+#include <map>
+#include <queue>
+#include "timer_manager.h"
 
 class EventLoop{
 public:
@@ -20,9 +23,15 @@ private:
 	int handle_accept_event(epoll_event &event, EventHandlerIface* socket_watcher);
 	int handle_readable_event(epoll_event &event, EventHandlerIface* socket_watcher);
 	int handle_writeable_event(epoll_event &event, EventHandlerIface* socket_watcher);
+
+    int handle_timeout_event();
+    int __close_and_release(EpollContext* context);
 private: 
     EventHandlerIface* socket_watcher_;
     std::shared_ptr<Epoll> poller_;
+
+    std::map<int, EpollContext* >  fd2context_;
+    TimerManager timer_manager_;
 
 };
 #endif 
