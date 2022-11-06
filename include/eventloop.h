@@ -19,13 +19,15 @@ public:
     void update_to_poller(int fd, epoll_event &event);
     void remove_from_poller(int fd, epoll_event &event);
 private:
-	int close_and_release(epoll_event &event, EventHandlerIface* socket_watcher);
-	int handle_accept_event(epoll_event &event, EventHandlerIface* socket_watcher);
-	int handle_readable_event(epoll_event &event, EventHandlerIface* socket_watcher);
-	int handle_writeable_event(epoll_event &event, EventHandlerIface* socket_watcher);
+	int close_and_release(epoll_event &event);
+	int handle_accept_event(epoll_event &event);
+	int handle_readable_event(epoll_event &event);
+	int handle_writeable_event(epoll_event &event);
 
     int handle_timeout_event();
     int __close_and_release(EpollContext* context);
+private:
+    int biz_routine(epoll_event &event, char* read_buffer, int buffer_size, int read_size);
 private: 
     EventHandlerIface* socket_watcher_;
     std::shared_ptr<Epoll> poller_;

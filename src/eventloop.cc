@@ -59,17 +59,17 @@ void EventLoop::loop(int listenfd){
             if (events[i].data.fd == listenfd)
             {
                 // accept connection
-                this->handle_accept_event(events[i], socket_watcher_);
+                this->handle_accept_event(events[i]);
             }
             else if (events[i].events & EPOLLIN)
             {
                 // readable
-                this->handle_readable_event(events[i], socket_watcher_);
+                this->handle_readable_event(events[i]);
             }
             else if (events[i].events & EPOLLOUT)
             {
                 // writeable
-                this->handle_writeable_event(events[i], socket_watcher_);
+                this->handle_writeable_event(events[i]);
             }
             else
             {
@@ -99,7 +99,7 @@ void EventLoop::remove_from_poller(int fd, epoll_event &event){
 }
 
 
-int EventLoop::close_and_release(epoll_event &event, EventHandlerIface* socket_watcher){
+int EventLoop::close_and_release(epoll_event &event){
     if (event.data.ptr == NULL)
     {
         return 0;
@@ -131,7 +131,7 @@ int EventLoop::__close_and_release(EpollContext* context){
     return ret;
 }
 
-int EventLoop::handle_accept_event(epoll_event &event, EventHandlerIface* socket_watcher){
+int EventLoop::handle_accept_event(epoll_event &event){
     int listenfd = event.data.fd;
 
     std::string client_ip;
@@ -149,7 +149,7 @@ int EventLoop::handle_accept_event(epoll_event &event, EventHandlerIface* socket
     this->fd2context_[conn_sock]  = epoll_context;
     this->timer_manager_.AddToTimer(epoll_context);
 
-    socket_watcher->on_accept(*epoll_context);
+    socket_watcher_->on_accept(*epoll_context);
 
     // this->poller_->add_to_poller(conn_sock, EPOLLIN | EPOLLET, epoll_context);
     struct epoll_event conn_sock_ev;
@@ -160,33 +160,20 @@ int EventLoop::handle_accept_event(epoll_event &event, EventHandlerIface* socket
     return 0;
 }
 
-int EventLoop::handle_readable_event(epoll_event &event, EventHandlerIface* socket_watcher){
+int EventLoop::biz_routine(epoll_event &event, char* read_buffer, int buffer_size, int read_size){
     EpollContext *epoll_context = (EpollContext *)event.data.ptr;
     int fd = epoll_context->fd;
-
-    int buffer_size = SS_READ_BUFFER_SIZE;
-    char read_buffer[buffer_size];
-    memset(read_buffer, 0, buffer_size);
-
-    // int read_size = recv(fd, read_buffer, buffer_size, 0);
-    int read_size = SocketUtils::readn(fd, read_buffer, buffer_size);
-
-    // 异步
-
-
     int handle_ret = 0;
     if (read_size > 0)
     {
         LOG(INFO) << "read success which read size: " << read_size;
-        handle_ret = socket_watcher->on_readable(*epoll_context, read_buffer, buffer_size, read_size);
+        handle_ret = socket_watcher_->on_readable(*epoll_context, read_buffer, buffer_size, read_size);
     }
-
     if (read_size <= 0 || handle_ret < 0)
     {
-        close_and_release(event, socket_watcher);
+        this->close_and_release(event);
         return 0;
     }
-
     if (handle_ret == READ_CONTINUE)
     {
         event.events = EPOLLIN | EPOLLET;
@@ -200,15 +187,30 @@ int EventLoop::handle_readable_event(epoll_event &event, EventHandlerIface* sock
     return 0;
 }
 
-int EventLoop::handle_writeable_event(epoll_event &event, EventHandlerIface* socket_watcher){
+int EventLoop::handle_readable_event(epoll_event &event){
+    EpollContext *epoll_context = (EpollContext *)event.data.ptr;
+    int fd = epoll_context->fd;
+    int buffer_size = SS_READ_BUFFER_SIZE;
+    char read_buffer[buffer_size];
+    memset(read_buffer, 0, buffer_size);
+    // int read_size = recv(fd, read_buffer, buffer_size, 0);
+    int read_size = SocketUtils::readn(fd, read_buffer, buffer_size);
+
+    // 异步
+    // 先抽出一个函数出来
+    this->biz_routine(event, read_buffer, buffer_size, read_size);
+    return 0;
+}
+
+int EventLoop::handle_writeable_event(epoll_event &event){
     EpollContext *epoll_context = (EpollContext *)event.data.ptr;
     int fd = epoll_context->fd;
     LOG(INFO) << "start write data";
 
-    int ret = socket_watcher->on_writeable(*epoll_context);
+    int ret = socket_watcher_->on_writeable(*epoll_context);
     if (ret == WRITE_CONN_CLOSE)
     {
-        close_and_release(event, socket_watcher);  // 断开
+        close_and_release(event);  // 断开
         return 0;
     }
 
