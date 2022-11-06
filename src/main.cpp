@@ -30,7 +30,7 @@ void register_router(HttpServer& http_server){
 }
 
 void DumpTraceback(int Signal){
-    print_stacktrace();
+    print_stacktrace(Signal);
     _exit(1);
 }
 int SigHandle()

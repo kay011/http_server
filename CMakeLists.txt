@@ -14,6 +14,7 @@ link_directories(${PROJECT_SOURCE_DIR}/thirdparty/googletest/lib)
 link_directories(${PROJECT_SOURCE_DIR}/thirdparty/easylogging++/lib)
 
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_FLAGS "-g -rdynamic -Wall")
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 
 aux_source_directory(${PROJECT_SOURCE_DIR}/src/ SRC_LIST)

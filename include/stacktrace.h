@@ -10,8 +10,9 @@
 #include <cxxabi.h>
 
 /** Print a demangled stack backtrace of the caller function to FILE* out. */
-static inline void print_stacktrace(FILE *out = stderr, unsigned int max_frames = 63)
+static inline void print_stacktrace(int Signal, FILE *out = stderr, unsigned int max_frames = 63)
 {
+	fprintf(out, "signal: %d\n", Signal);
     fprintf(out, "stack trace:\n");
 
     // storage array for stack trace address data
@@ -69,13 +70,13 @@ static inline void print_stacktrace(FILE *out = stderr, unsigned int max_frames 
 					    funcname, &funcnamesize, &status);
 	    if (status == 0) {
 		funcname = ret; // use possibly realloc()-ed string
-		fprintf(out, "  %s : %s+%s\n",
+		fprintf(out, "  %s: %s+%s\n",
 			symbollist[i], funcname, begin_offset);
 	    }
 	    else {
 		// demangling failed. Output function name as a C function with
 		// no arguments.
-		fprintf(out, "  %s : %s()+%s\n",
+		fprintf(out, "  %s: %s()+%s\n",
 			symbollist[i], begin_name, begin_offset);
 	    }
 	}

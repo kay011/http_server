@@ -30,21 +30,21 @@ void EventLoop::loop(int listenfd){
         // }
         // LOG(INFO) << "yhd_size: " <<fd2expire_time_.size();
         int timeout = -1;
-        LOG(INFO) << "timer_manager_.size(): " << timer_manager_.size();
-        if(timer_manager_.size() > 0){
-            LOG(INFO) << "yhd_test";
-            TimeNode tn = timer_manager_.GetNearbyTimeNode();
-            std::chrono::milliseconds now_ms = std::chrono::duration_cast< std::chrono::milliseconds >(
-                std::chrono::system_clock::now().time_since_epoch());
-            long diff_time = now_ms.count() - tn.last_active_time_;
-            LOG(INFO) << "yhd diff_time: " << diff_time;
-            if (diff_time - EXPIRE_TIME >= 0) // 说明已经有超时事件了
-            {
-                timeout = 0;
-            } else {    // 说明最近的还没有超时
-                timeout = EXPIRE_TIME - diff_time;
-            }
-        }
+        // LOG(INFO) << "timer_manager_.size(): " << timer_manager_.size();
+        // if(timer_manager_.size() > 0){
+        //     LOG(INFO) << "yhd_test";
+        //     TimeNode tn = timer_manager_.GetNearbyTimeNode();
+        //     std::chrono::milliseconds now_ms = std::chrono::duration_cast< std::chrono::milliseconds >(
+        //         std::chrono::system_clock::now().time_since_epoch());
+        //     long diff_time = now_ms.count() - tn.last_active_time_;
+        //     LOG(INFO) << "yhd diff_time: " << diff_time;
+        //     if (diff_time - EXPIRE_TIME >= 0) // 说明已经有超时事件了
+        //     {
+        //         timeout = 0;
+        //     } else {    // 说明最近的还没有超时
+        //         timeout = EXPIRE_TIME - diff_time;
+        //     }
+        // }
         LOG(INFO) << "timeout: " << timeout;
         int fds_num = this->poller_->poller(events, max_events, timeout);
         // int fds_num = epoll_wait(this->get_epoll_fd(), events, max_events, -1);
@@ -78,7 +78,7 @@ void EventLoop::loop(int listenfd){
         }
 
         // 处理时间事件
-        this->handle_timeout_event();
+        // this->handle_timeout_event();
     }
 
     if (events != NULL)
@@ -153,6 +153,7 @@ int EventLoop::handle_accept_event(epoll_event &event){
 
     // this->poller_->add_to_poller(conn_sock, EPOLLIN | EPOLLET, epoll_context);
     struct epoll_event conn_sock_ev;
+    conn_sock_ev.data.fd = conn_sock;
     conn_sock_ev.events = EPOLLIN | EPOLLET;
     conn_sock_ev.data.ptr = epoll_context;
     this->add_to_poller(conn_sock, conn_sock_ev);
@@ -162,7 +163,10 @@ int EventLoop::handle_accept_event(epoll_event &event){
 
 int EventLoop::biz_routine(epoll_event &event, char* read_buffer, int buffer_size, int read_size){
     EpollContext *epoll_context = (EpollContext *)event.data.ptr;
+    // LOG(INFO) << "epoll_context fd: " << epoll_context->fd;
     int fd = epoll_context->fd;
+    // int fd = event.data.fd;
+    // LOG(INFO) << "event.data fd: " << event.data.fd;
     int handle_ret = 0;
     if (read_size > 0)
     {
@@ -189,6 +193,8 @@ int EventLoop::biz_routine(epoll_event &event, char* read_buffer, int buffer_siz
 
 int EventLoop::handle_readable_event(epoll_event &event){
     EpollContext *epoll_context = (EpollContext *)event.data.ptr;
+    // LOG(INFO) << "epoll_context fd: " << epoll_context->fd;
+    // LOG(INFO) << "event.data fd: " << event.data.fd;
     int fd = epoll_context->fd;
     int buffer_size = SS_READ_BUFFER_SIZE;
     char read_buffer[buffer_size];
