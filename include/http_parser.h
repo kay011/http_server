@@ -17,10 +17,8 @@
 class Request;
 class Response;
 
-typedef std::function<void(Request &request, Response &response)>
-    method_handler_callback;
-typedef std::function<void(Request &request, Json::Value &response)>
-    json_handler_callback;
+typedef std::function<void(Request &request, Response &response)> method_handler_callback;
+typedef std::function<void(Request &request, Json::Value &response)> json_handler_callback;
 
 struct HttpMethod {
   int code;
@@ -185,8 +183,7 @@ class HttpContext {
   int get_cost_time() {
     timeval end;
     gettimeofday(&end, NULL);
-    int cost_time =
-        (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec);
+    int cost_time = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec);
     return cost_time;
   }
 
@@ -194,8 +191,7 @@ class HttpContext {
     std::string http_method = this->req->line.method;
     std::string request_url = this->req->line.request_url;
     int cost_time = get_cost_time();
-    LOG(INFO) << "access_log " << http_method.c_str() << " "
-              << request_url.c_str() << " "
+    LOG(INFO) << "access_log " << http_method.c_str() << " " << request_url.c_str() << " "
               << "status_code:" << res->code_msg.status_code << " "
               << "cost_time:" << cost_time << "us, "
               << "body_size:" << res->body.size() << ", "

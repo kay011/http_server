@@ -19,13 +19,10 @@ std::string RequestParam::get_param(std::string &name) {
   return i->second;
 }
 
-void RequestParam::get_params(std::string &name,
-                              std::vector<std::string> &params) {
-  std::pair<std::multimap<std::string, std::string>::iterator,
-            std::multimap<std::string, std::string>::iterator>
-      ret = this->params.equal_range(name);
-  for (std::multimap<std::string, std::string>::iterator it = ret.first;
-       it != ret.second; ++it) {
+void RequestParam::get_params(std::string &name, std::vector<std::string> &params) {
+  std::pair<std::multimap<std::string, std::string>::iterator, std::multimap<std::string, std::string>::iterator> ret =
+      this->params.equal_range(name);
+  for (std::multimap<std::string, std::string>::iterator it = ret.first; it != ret.second; ++it) {
     params.push_back(it->second);
   }
 }
@@ -74,8 +71,7 @@ int RequestLine::parse_request_line(const char *line, int size) {
   // http://127.0.0.1/hello?name=yuan&age=25
   int ret = parse_request_url_params();
   if (ret != 0) {
-    LOG(INFO) << "parse_request_url_params fail which request_url: "
-              << request_url.c_str();
+    LOG(INFO) << "parse_request_url_params fail which request_url: " << request_url.c_str();
     return ret;
   }
 
@@ -129,13 +125,9 @@ void Request::get_params(std::string &name, std::vector<std::string> &params) {
   }
 }
 
-void Request::add_header(std::string &name, std::string &value) {
-  this->headers[name] = value;
-}
+void Request::add_header(std::string &name, std::string &value) { this->headers[name] = value; }
 
-std::string Request::get_header(std::string name) {
-  return this->headers[name];
-}
+std::string Request::get_header(std::string name) { return this->headers[name]; }
 
 std::string Request::get_request_uri() { return line.get_request_uri(); }
 
@@ -211,8 +203,7 @@ int Request::parse_request(const char *read_buffer, int read_size) {
       continue;
     }
 
-    if (parse_part ==
-        PARSE_REQ_LINE) {  // parse request line like  "GET /index.jsp HTTP/1.1"
+    if (parse_part == PARSE_REQ_LINE) {  // parse request line like  "GET /index.jsp HTTP/1.1"
       LOG(INFO) << "start parse req_line line: " << line.c_str();
       ret = this->line.parse_request_line(line.c_str(), line.size() - 1);
       if (ret != 0) {
@@ -261,8 +252,7 @@ int Request::parse_request(const char *read_buffer, int read_size) {
 
         if (read_body_size >= total_body_size) {
           // 说明body 读完了
-          if (this->headers["Content-Type"] ==
-              "application/x-www-form-urlencoded") {
+          if (this->headers["Content-Type"] == "application/x-www-form-urlencoded") {
             this->body.parse_query_url(this->body_buf->str());
           } else if (this->headers["Content-Type"] == "application/json") {
             // 直接操作 body buf
@@ -300,9 +290,7 @@ Response::Response(CodeMsg status_code) {
   this->is_writed = 0;
 }
 
-void Response::set_head(std::string name, std::string &value) {
-  this->headers[name] = value;
-}
+void Response::set_head(std::string name, std::string &value) { this->headers[name] = value; }
 
 void Response::set_body(Json::Value &body) {
   Json::FastWriter writer;
@@ -313,8 +301,7 @@ void Response::set_body(Json::Value &body) {
 int Response::gen_response(std::string &http_version, bool is_keepalive) {
   // printf("START gen_response code:%d, msg:%s\n", code_msg.status_code,
   // code_msg.msg.c_str());
-  res_bytes << http_version << " " << code_msg.status_code << " "
-            << code_msg.msg << "\r\n";
+  res_bytes << http_version << " " << code_msg.status_code << " " << code_msg.msg << "\r\n";
   res_bytes << "Server: SimpleServer/0.1"
             << "\r\n";
   if (headers.find("Content-Type") == headers.end()) {
@@ -329,8 +316,7 @@ int Response::gen_response(std::string &http_version, bool is_keepalive) {
   }
   res_bytes << con_status << "\r\n";
 
-  for (std::map<std::string, std::string>::iterator it = headers.begin();
-       it != headers.end(); ++it) {
+  for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); ++it) {
     res_bytes << it->first << ": " << it->second << "\r\n";
   }
   // header end

@@ -84,15 +84,9 @@ void EventLoop::loop() {
   }
 }
 
-void EventLoop::add_to_poller(int fd, uint32_t events) {
-  poller_->add_to_poller(fd, events);
-}
-void EventLoop::update_to_poller(int fd, uint32_t events) {
-  poller_->update_to_poller(fd, events);
-}
-void EventLoop::remove_from_poller(int fd, uint32_t events) {
-  poller_->remove_from_poller(fd, events);
-}
+void EventLoop::add_to_poller(int fd, uint32_t events) { poller_->add_to_poller(fd, events); }
+void EventLoop::update_to_poller(int fd, uint32_t events) { poller_->update_to_poller(fd, events); }
+void EventLoop::remove_from_poller(int fd, uint32_t events) { poller_->remove_from_poller(fd, events); }
 
 int EventLoop::close_and_release(int fd) {
   auto fd_iter = fd2context_.find(fd);
@@ -137,8 +131,7 @@ int EventLoop::handle_accept_event(int fd) {
     return -1;
   }
   SocketUtils::set_nonblocking(conn_fd);
-  LOG(INFO) << "get accept socket which listen fd:" << listenfd
-            << ",conn_fd: " << conn_fd;
+  LOG(INFO) << "get accept socket which listen fd:" << listenfd << ",conn_fd: " << conn_fd;
 
   EpollContext* epoll_context = new EpollContext();
   epoll_context->fd = conn_fd;
@@ -171,8 +164,7 @@ int EventLoop::handle_readable_event(int fd) {
   memset(epoll_context->read_buffer, 0, epoll_context->buffer_size);
   // int read_size = recv(fd, read_buffer, buffer_size, 0);
   assert(fd == epoll_context->fd);
-  epoll_context->read_size = SocketUtils::readn(fd, epoll_context->read_buffer,
-                                                epoll_context->buffer_size);
+  epoll_context->read_size = SocketUtils::readn(fd, epoll_context->read_buffer, epoll_context->buffer_size);
   // pthread_t tid;
   // int ret = pthread_create(&tid, NULL, biz_routine, epoll_context);
   // if(ret != 0){
@@ -220,8 +212,7 @@ int EventLoop::handle_timeout_event() {
     // 先取出top
     TimeNode tn = timer_manager_.GetNearbyTimeNode();
     std::chrono::milliseconds now_ms =
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::system_clock::now().time_since_epoch());
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
     long diff_time = now_ms.count() - tn.last_active_time_;
     LOG(INFO) << "diff_time: " << diff_time;
     if (diff_time - EXPIRE_TIME >= 0) {
@@ -254,8 +245,7 @@ void* biz_routine(void* args) {
   int handle_ret = 0;
   if (read_size > 0) {
     LOG(INFO) << "read success which read size: " << read_size;
-    handle_ret = loop->get_socket_watcher()->on_readable(
-        *epoll_context, read_buffer, buffer_size, read_size);
+    handle_ret = loop->get_socket_watcher()->on_readable(*epoll_context, read_buffer, buffer_size, read_size);
   }
   if (read_size <= 0 || handle_ret < 0) {
     loop->close_and_release(fd);

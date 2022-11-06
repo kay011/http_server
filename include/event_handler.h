@@ -23,8 +23,7 @@ struct EpollContext {
 class EventHandlerIface {
  public:
   virtual int on_accept(EpollContext &epoll_context) = 0;
-  virtual int on_readable(EpollContext &epoll_context, char *read_buffer,
-                          int buffer_size, int read_size) = 0;
+  virtual int on_readable(EpollContext &epoll_context, char *read_buffer, int buffer_size, int read_size) = 0;
   virtual int on_writeable(EpollContext &epoll_context) = 0;
   virtual int on_close(EpollContext &epoll_context) = 0;
 };
@@ -32,10 +31,8 @@ class EventHandlerIface {
 // impl
 class HttpEventHandler : public EventHandlerIface {
  public:
-  void add_mapping(std::string path, method_handler_callback handler,
-                   HttpMethod method);
-  void add_mapping(std::string path, json_handler_callback handler,
-                   HttpMethod method);
+  void add_mapping(std::string path, method_handler_callback handler, HttpMethod method);
+  void add_mapping(std::string path, json_handler_callback handler, HttpMethod method);
 
  private:
   int handle_request(Request &request, Response &response);
@@ -43,14 +40,12 @@ class HttpEventHandler : public EventHandlerIface {
  public:
   virtual ~HttpEventHandler() {}
   int on_accept(EpollContext &epoll_context) override;
-  int on_readable(EpollContext &epoll_context, char *read_buffer,
-                  int buffer_size, int read_size) override;
+  int on_readable(EpollContext &epoll_context, char *read_buffer, int buffer_size, int read_size) override;
   int on_writeable(EpollContext &epoll_context) override;
   int on_close(EpollContext &epoll_context) override;
 
  private:
-  std::map<std::string, Resource>
-      resource_map_;  // 维护 uri和业务处理函数的映射
+  std::map<std::string, Resource> resource_map_;  // 维护 uri和业务处理函数的映射
 };
 
 #endif

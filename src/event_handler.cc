@@ -4,24 +4,19 @@
 
 #include "unistd.h"
 
-void HttpEventHandler::add_mapping(std::string path,
-                                   method_handler_callback handler,
-                                   HttpMethod method) {
+void HttpEventHandler::add_mapping(std::string path, method_handler_callback handler, HttpMethod method) {
   Resource resource = {method, handler, nullptr};
   resource_map_[path] = resource;
 }
 
-void HttpEventHandler::add_mapping(std::string path,
-                                   json_handler_callback handler,
-                                   HttpMethod method) {
+void HttpEventHandler::add_mapping(std::string path, json_handler_callback handler, HttpMethod method) {
   Resource resource = {method, nullptr, handler};
   resource_map_[path] = resource;
 }
 
 int HttpEventHandler::handle_request(Request &req, Response &res) {
   std::string uri = req.get_request_uri();
-  if (this->resource_map_.find(uri) ==
-      this->resource_map_.end()) {  // not found
+  if (this->resource_map_.find(uri) == this->resource_map_.end()) {  // not found
     res.code_msg = STATUS_NOT_FOUND;
     res.body = STATUS_NOT_FOUND.msg;
     LOG(INFO) << "page not found which uri: " << uri.c_str();
@@ -59,9 +54,7 @@ int HttpEventHandler::on_accept(EpollContext &epoll_context) {
   return 0;
 }
 
-int HttpEventHandler::on_readable(EpollContext &epoll_context,
-                                  char *read_buffer, int buffer_size,
-                                  int read_size) {
+int HttpEventHandler::on_readable(EpollContext &epoll_context, char *read_buffer, int buffer_size, int read_size) {
   HttpContext *http_context = (HttpContext *)epoll_context.ptr;
   if (http_context->get_requset().parse_part == PARSE_REQ_LINE) {
     http_context->record_start_time();
@@ -81,9 +74,7 @@ int HttpEventHandler::on_writeable(EpollContext &epoll_context) {
   int fd = epoll_context.fd;
   HttpContext *hc = (HttpContext *)epoll_context.ptr;
   Response &res = hc->get_res();
-  bool is_keepalive =
-      (strcasecmp(hc->get_requset().get_header("Connection").c_str(),
-                  "keep-alive") == 0);
+  bool is_keepalive = (strcasecmp(hc->get_requset().get_header("Connection").c_str(), "keep-alive") == 0);
 
   if (!res.is_writed) {
     res.gen_response(hc->get_requset().line.http_version, is_keepalive);
@@ -106,8 +97,7 @@ int HttpEventHandler::on_writeable(EpollContext &epoll_context) {
   if (nwrite < read_size) {
     res.rollback(read_size - nwrite);
   }
-  LOG(INFO) << "send complete which write_num: " << nwrite
-            << ", read_size: " << read_size;
+  LOG(INFO) << "send complete which write_num: " << nwrite << ", read_size: " << read_size;
 
   bool print_access_log = true;
 

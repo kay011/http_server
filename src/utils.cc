@@ -20,26 +20,20 @@ int set_nonblocking(int fd) {
 }
 
 static inline std::string &ltrim(std::string &s) {
-  s.erase(s.begin(),
-          std::find_if(s.begin(), s.end(),
-                       std::not1(std::ptr_fun<int, int>(std::isspace))));
+  s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
   return s;
 }
 
 // trim from end
 static inline std::string &rtrim(std::string &s) {
-  s.erase(std::find_if(s.rbegin(), s.rend(),
-                       std::not1(std::ptr_fun<int, int>(std::isspace)))
-              .base(),
-          s.end());
+  s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
   return s;
 }
 
 // trim from both ends
 static inline std::string &trim(std::string &s) { return ltrim(rtrim(s)); }
 
-void split_str(const std::string &str, char split_char,
-               std::vector<std::string> &output) {
+void split_str(const std::string &str, char split_char, std::vector<std::string> &output) {
   std::stringstream ss(str);
   while (ss.good()) {
     std::string temp;
@@ -113,8 +107,7 @@ int listen_on(int port, int backlog) {
   int opt = 1;
   setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-  if (bind(listen_fd, (struct sockaddr *)&my_addr, sizeof(struct sockaddr)) ==
-      -1) {
+  if (bind(listen_fd, (struct sockaddr *)&my_addr, sizeof(struct sockaddr)) == -1) {
     LOG(FATAL) << "listen_fd bind err";
   }
 
@@ -130,8 +123,7 @@ int accept_socket(int listenfd, std::string &client_ip) {
   struct sockaddr_in their_addr; /* connector's address information */
   socklen_t sin_size = sizeof(struct sockaddr_in);
 
-  if ((new_fd = accept(listenfd, (struct sockaddr *)&their_addr, &sin_size)) ==
-      -1) {
+  if ((new_fd = accept(listenfd, (struct sockaddr *)&their_addr, &sin_size)) == -1) {
     LOG(FATAL) << "accept listen err";
     return -1;
   }

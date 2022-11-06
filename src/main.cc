@@ -18,15 +18,12 @@ void init() {
   // el::Logger* defaultLogger = el::Loggers::getLogger("default");
   el::Configurations conf;
   conf.setToDefault();
-  conf.setGlobally(el::ConfigurationType::Format,
-                   "[%datetime{%H:%m:%s} | %level] %msg");
-  conf.setGlobally(el::ConfigurationType::Filename,
-                   "log_%datetime{%Y%M%d}.log");
+  conf.setGlobally(el::ConfigurationType::Format, "[%datetime{%H:%m:%s} | %level] %msg");
+  conf.setGlobally(el::ConfigurationType::Filename, "log_%datetime{%Y%M%d}.log");
   conf.setGlobally(el::ConfigurationType::Enabled, "true");
   conf.setGlobally(el::ConfigurationType::ToFile, "true");
   el::Loggers::reconfigureAllLoggers(conf);
-  el::Loggers::reconfigureAllLoggers(el::ConfigurationType::ToStandardOutput,
-                                     "false");
+  el::Loggers::reconfigureAllLoggers(el::ConfigurationType::ToStandardOutput, "false");
 }
 
 void register_router(HttpServer& http_server) {
