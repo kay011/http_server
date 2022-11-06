@@ -6,11 +6,18 @@
 #include "easylogging++.h"
 #include "global.h"
 #include "http_parser.h"
+
+class EventLoop;
 struct EpollContext
 {
 	void *ptr;
 	int fd;
 	std::string client_ip;
+
+	char* read_buffer;
+	int buffer_size;
+	int read_size;
+	EventLoop* loop;
 };
 
 class EventHandlerIface

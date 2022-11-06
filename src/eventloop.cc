@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>
+#include <pthread.h>
 
 EventLoop::EventLoop(){
     poller_ = std::make_shared<Epoll>();
@@ -105,7 +106,8 @@ int EventLoop::close_and_release(int fd){
     if(fd_iter != fd2context_.end()){
         EpollContext *hc = fd_iter->second;
         assert(hc != NULL);
-        __close_and_release(hc);
+        __close_and_release(hc); 
+        fd2context_.erase(fd_iter);
     }
     LOG(INFO) << "connect close";
     return 0;
@@ -120,6 +122,11 @@ int EventLoop::__close_and_release(EpollContext* context){
     // event.events = EPOLLIN | EPOLLOUT | EPOLLET;
     this->remove_from_poller(fd, event);
     // epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, &event);
+    // 删除read_buffer;
+    if (context->read_buffer != NULL){
+        delete context->read_buffer;
+        context->read_buffer = NULL;
+    }
     if (context != NULL){
         delete context;
         context = NULL;
@@ -144,6 +151,7 @@ int EventLoop::handle_accept_event(int fd){
     EpollContext *epoll_context = new EpollContext();
     epoll_context->fd = conn_fd;
     epoll_context->client_ip = client_ip;
+    epoll_context->loop = this;
     this->fd2context_[conn_fd]  = epoll_context;  // 交由 eventloop 管理
 
     socket_watcher_->on_accept(*epoll_context);
@@ -153,34 +161,6 @@ int EventLoop::handle_accept_event(int fd){
     conn_fd_ev.events = EPOLLIN | EPOLLET;
     this->add_to_poller(conn_fd, conn_fd_ev);
 
-    return 0;
-}
-
-int EventLoop::biz_routine(EpollContext *epoll_context, char* read_buffer, int buffer_size, int read_size){
-    int fd = epoll_context->fd;
-    int handle_ret = 0;
-    if (read_size > 0)
-    {
-        LOG(INFO) << "read success which read size: " << read_size;
-        handle_ret = socket_watcher_->on_readable(*epoll_context, read_buffer, buffer_size, read_size);
-    }
-    struct epoll_event event;
-    event.data.fd = fd;
-    if (read_size <= 0 || handle_ret < 0)
-    {
-        this->close_and_release(fd);
-        return 0;
-    }
-    if (handle_ret == READ_CONTINUE)
-    {
-        event.events = EPOLLIN | EPOLLET;
-    }
-    else
-    {
-        event.events = EPOLLOUT | EPOLLET;
-    }
-    // epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &event);
-    this->update_to_poller(fd, event);
     return 0;
 }
 
@@ -194,13 +174,19 @@ int EventLoop::handle_readable_event(int fd){
     
     EpollContext *epoll_context = fd_iter->second;
     assert(epoll_context->ptr != NULL);
-    int buffer_size = SS_READ_BUFFER_SIZE;
-    char read_buffer[buffer_size];
-    memset(read_buffer, 0, buffer_size);
+    epoll_context->buffer_size = SS_READ_BUFFER_SIZE;
+    epoll_context->read_buffer = new char[epoll_context->buffer_size];
+    memset(epoll_context->read_buffer, 0, epoll_context->buffer_size);
     // int read_size = recv(fd, read_buffer, buffer_size, 0);
     assert(fd == epoll_context->fd);
-    int read_size = SocketUtils::readn(fd, read_buffer, buffer_size);
-    this->biz_routine(epoll_context, read_buffer, buffer_size, read_size);
+    epoll_context->read_size = SocketUtils::readn(fd, epoll_context->read_buffer, epoll_context->buffer_size);
+    pthread_t tid;
+    int ret = pthread_create(&tid, NULL, biz_routine, epoll_context);
+    if(ret != 0){
+        LOG(FATAL) << "pthread_create err";
+    }
+    pthread_detach(tid);
+    // biz_routine(epoll_context);
     return 0;
 }
 
@@ -264,4 +250,37 @@ int EventLoop::handle_timeout_event(){
         }
     }
     return 0;
+}
+
+void* biz_routine(void *args){
+    EpollContext* epoll_context = (EpollContext*)args;
+    assert(epoll_context != NULL);
+    EventLoop* loop = epoll_context->loop;
+    char* read_buffer = epoll_context->read_buffer;
+    int buffer_size = epoll_context->buffer_size;
+    int read_size = epoll_context->read_size;
+    int fd = epoll_context->fd;
+    int handle_ret = 0;
+    if (read_size > 0)
+    {
+        LOG(INFO) << "read success which read size: " << read_size;
+        handle_ret = loop->socket_watcher_->on_readable(*epoll_context, read_buffer, buffer_size, read_size);
+    }
+    struct epoll_event event;
+    event.data.fd = fd;
+    if (read_size <= 0 || handle_ret < 0)
+    {
+        loop->close_and_release(fd);
+        return 0;
+    }
+    if (handle_ret == READ_CONTINUE)
+    {
+        event.events = EPOLLIN | EPOLLET;
+    }
+    else
+    {
+        event.events = EPOLLOUT | EPOLLET;
+    }
+    // epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &event);
+    loop->update_to_poller(fd, event);
 }
