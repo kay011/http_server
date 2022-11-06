@@ -11,13 +11,13 @@ class EventLoop{
 public:
     EventLoop();
     ~EventLoop();
-    void init(EventHandlerIface* socket_watcher);
-    void loop(int listen_fd);
+    void init(EventHandlerIface* socket_watcher, int listen_fd);
+    void loop();
     int get_epoll_fd() const { return poller_->get_epoll_fd(); }
 
-    void add_to_poller(int fd, epoll_event &event);
-    void update_to_poller(int fd, epoll_event &event);
-    void remove_from_poller(int fd, epoll_event &event);
+    void add_to_poller(int fd, uint32_t events);
+    void update_to_poller(int fd, uint32_t events);
+    void remove_from_poller(int fd, uint32_t events);
 
 	int close_and_release(int fd);
 	int handle_accept_event(int fd);
@@ -26,10 +26,13 @@ public:
 
     int handle_timeout_event();
     int __close_and_release(EpollContext* context);
+public:
+    EventHandlerIface* get_socket_watcher() const {return socket_watcher_;}
 
-
-    EventHandlerIface* socket_watcher_;
+    
 private: 
+    int listen_fd_;
+    EventHandlerIface* socket_watcher_;
     std::shared_ptr<Epoll> poller_;
 
     std::map<int, EpollContext* >  fd2context_;

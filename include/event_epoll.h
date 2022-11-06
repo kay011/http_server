@@ -1,5 +1,6 @@
 #ifndef EVENT_EPOLL_H
 #define EVENT_EPOLL_H
+#include "stdint.h"
 
 class Epoll{
 public:
@@ -7,9 +8,9 @@ public:
     ~Epoll();
 
     int poller(epoll_event* events, int max_events, int timeout);
-    void add_to_poller(int fd, epoll_event &event);
-    void update_to_poller(int fd, epoll_event &event);
-    void remove_from_poller(int fd, epoll_event &event);
+    void add_to_poller(int fd, uint32_t events);
+    void update_to_poller(int fd, uint32_t events);
+    void remove_from_poller(int fd, uint32_t events);
     int get_epoll_fd() const {return epoll_fd_;}
 private:
     int epoll_fd_;

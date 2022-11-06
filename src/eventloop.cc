@@ -18,11 +18,12 @@ EventLoop::~EventLoop(){
 
 }
 
-void EventLoop::init(EventHandlerIface* socket_watcher){
+void EventLoop::init(EventHandlerIface* socket_watcher, int listen_fd){
     socket_watcher_ = socket_watcher;
+    listen_fd_ = listen_fd;
 }  
 
-void EventLoop::loop(int listenfd){
+void EventLoop::loop(){
     int max_events = 1000;
     epoll_event *events = new epoll_event[max_events];
     while (true)
@@ -60,7 +61,7 @@ void EventLoop::loop(int listenfd){
         // 处理文件事件
         for (int i = 0; i < fds_num; i++)
         {
-            if (events[i].data.fd == listenfd)
+            if (events[i].data.fd == this->listen_fd_)
             {
                 // accept connection
                 this->handle_accept_event(events[i].data.fd);
@@ -92,14 +93,14 @@ void EventLoop::loop(int listenfd){
     }
 }
 
-void EventLoop::add_to_poller(int fd, epoll_event &event){
-    poller_->add_to_poller(fd, event);
+void EventLoop::add_to_poller(int fd, uint32_t events){
+    poller_->add_to_poller(fd, events);
 }
-void EventLoop::update_to_poller(int fd, epoll_event &event){
-    poller_->update_to_poller(fd, event);
+void EventLoop::update_to_poller(int fd, uint32_t events){
+    poller_->update_to_poller(fd, events);
 }
-void EventLoop::remove_from_poller(int fd, epoll_event &event){
-    poller_->remove_from_poller(fd, event);
+void EventLoop::remove_from_poller(int fd, uint32_t events){
+    poller_->remove_from_poller(fd, events);
 }
 
 
@@ -119,10 +120,9 @@ int EventLoop::__close_and_release(EpollContext* context){
     LOG(INFO) << "access __close_and_release";
     socket_watcher_->on_close(*context);
     int fd = context->fd;
-    struct epoll_event event;
-    event.data.fd = fd;
-    // event.events = EPOLLIN | EPOLLOUT | EPOLLET;
-    this->remove_from_poller(fd, event);
+    
+    uint32_t events = EPOLLIN | EPOLLOUT | EPOLLET;
+    this->remove_from_poller(fd, events);
     // epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, &event);
     // 删除read_buffer;
     if (context->read_buffer != NULL){
@@ -158,10 +158,10 @@ int EventLoop::handle_accept_event(int fd){
 
     socket_watcher_->on_accept(*epoll_context);
 
-    struct epoll_event conn_fd_ev;
-    conn_fd_ev.data.fd = conn_fd;
-    conn_fd_ev.events = EPOLLIN | EPOLLET;
-    this->add_to_poller(conn_fd, conn_fd_ev);
+    // struct epoll_event conn_fd_ev;
+    // conn_fd_ev.data.fd = conn_fd;
+    // conn_fd_ev.events = EPOLLIN | EPOLLET;
+    this->add_to_poller(conn_fd, EPOLLIN | EPOLLET);
 
     return 0;
 }
@@ -211,17 +211,15 @@ int EventLoop::handle_writeable_event(int fd){
         close_and_release(fd);  // 断开
         return 0;
     }
-    struct epoll_event event;
-    event.data.fd = fd;
+    uint32_t events;
     if (ret == WRITE_CONN_CONTINUE)
     {
-        event.events = EPOLLOUT | EPOLLET;
-    }
-    else // WRITE_CONN_ALIVE
+        events = EPOLLOUT | EPOLLET;
+    } else // WRITE_CONN_ALIVE
     {
-        event.events = EPOLLIN | EPOLLET; // 长连接
+        events = EPOLLIN | EPOLLET; // 长连接
     }
-    this->update_to_poller(fd, event);
+    this->update_to_poller(fd, events);
     // epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &event);
     return 0;
 }
@@ -267,23 +265,19 @@ void* biz_routine(void *args){
     if (read_size > 0)
     {
         LOG(INFO) << "read success which read size: " << read_size;
-        handle_ret = loop->socket_watcher_->on_readable(*epoll_context, read_buffer, buffer_size, read_size);
+        handle_ret = loop->get_socket_watcher()->on_readable(*epoll_context, read_buffer, buffer_size, read_size);
     }
-    struct epoll_event event;
-    event.data.fd = fd;
     if (read_size <= 0 || handle_ret < 0)
     {
         loop->close_and_release(fd);
         return 0;
     }
+    uint32_t events;
     if (handle_ret == READ_CONTINUE)
     {
-        event.events = EPOLLIN | EPOLLET;
+        events = EPOLLIN | EPOLLET;
+    }else{
+        events = EPOLLOUT | EPOLLET;
     }
-    else
-    {
-        event.events = EPOLLOUT | EPOLLET;
-    }
-    // epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &event);
-    loop->update_to_poller(fd, event);
+    loop->update_to_poller(fd, events);
 }

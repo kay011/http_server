@@ -19,12 +19,8 @@
 HttpServer::HttpServer(int port): port_(port){
 	listen_fd_ = SocketUtils::listen_on(port_, 10);
 	http_handler_ = std::make_shared<HttpEventHandler>();
-	loop_.init(http_handler_.get());
-
-	struct epoll_event ev;
-    ev.events = EPOLLIN;
-    ev.data.fd = listen_fd_;
-	loop_.add_to_poller(listen_fd_, ev);
+	loop_.init(http_handler_.get(), listen_fd_);
+	loop_.add_to_poller(listen_fd_, EPOLLIN);
 }
 HttpServer::~HttpServer(){
 
@@ -32,7 +28,7 @@ HttpServer::~HttpServer(){
 
 int HttpServer::start()
 {
-	loop_.loop(listen_fd_);
+	loop_.loop();
 	return 0;
 }
 
