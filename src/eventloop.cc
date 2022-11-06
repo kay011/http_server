@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <cstdlib>
 #include <cstdio>
+#include <cassert>
 
 EventLoop::EventLoop(){
     poller_ = std::make_shared<Epoll>();
@@ -59,17 +60,17 @@ void EventLoop::loop(int listenfd){
             if (events[i].data.fd == listenfd)
             {
                 // accept connection
-                this->handle_accept_event(events[i]);
+                this->handle_accept_event(events[i].data.fd);
             }
             else if (events[i].events & EPOLLIN)
             {
                 // readable
-                this->handle_readable_event(events[i]);
+                this->handle_readable_event(events[i].data.fd);
             }
             else if (events[i].events & EPOLLOUT)
             {
                 // writeable
-                this->handle_writeable_event(events[i]);
+                this->handle_writeable_event(events[i].data.fd);
             }
             else
             {
@@ -99,17 +100,14 @@ void EventLoop::remove_from_poller(int fd, epoll_event &event){
 }
 
 
-int EventLoop::close_and_release(epoll_event &event){
-    if (event.data.ptr == NULL)
-    {
-        return 0;
+int EventLoop::close_and_release(int fd){
+    auto fd_iter = fd2context_.find(fd);
+    if(fd_iter != fd2context_.end()){
+        EpollContext *hc = fd_iter->second;
+        assert(hc != NULL);
+        __close_and_release(hc);
     }
-
     LOG(INFO) << "connect close";
-
-    EpollContext *hc = (EpollContext *)event.data.ptr;
-
-    __close_and_release(hc);
     return 0;
 }
 
@@ -131,51 +129,46 @@ int EventLoop::__close_and_release(EpollContext* context){
     return ret;
 }
 
-int EventLoop::handle_accept_event(epoll_event &event){
-    int listenfd = event.data.fd;
+int EventLoop::handle_accept_event(int fd){
+    int listenfd = fd;
 
     std::string client_ip;
-    int conn_sock = SocketUtils::accept_socket(listenfd, client_ip);
-    if (conn_sock == -1)
+    int conn_fd = SocketUtils::accept_socket(listenfd, client_ip);
+    if (conn_fd == -1)
     {
         return -1;
     }
-    SocketUtils::set_nonblocking(conn_sock);
-    LOG(INFO) << "get accept socket which listen fd:" << listenfd << ",conn_sock_fd: " << conn_sock;
+    SocketUtils::set_nonblocking(conn_fd);
+    LOG(INFO) << "get accept socket which listen fd:" << listenfd << ",conn_fd: " << conn_fd;
 
     EpollContext *epoll_context = new EpollContext();
-    epoll_context->fd = conn_sock;
+    epoll_context->fd = conn_fd;
     epoll_context->client_ip = client_ip;
-    this->fd2context_[conn_sock]  = epoll_context;
-    this->timer_manager_.AddToTimer(epoll_context);
+    this->fd2context_[conn_fd]  = epoll_context;  // 交由 eventloop 管理
 
     socket_watcher_->on_accept(*epoll_context);
 
-    // this->poller_->add_to_poller(conn_sock, EPOLLIN | EPOLLET, epoll_context);
-    struct epoll_event conn_sock_ev;
-    conn_sock_ev.data.fd = conn_sock;
-    conn_sock_ev.events = EPOLLIN | EPOLLET;
-    conn_sock_ev.data.ptr = epoll_context;
-    this->add_to_poller(conn_sock, conn_sock_ev);
+    struct epoll_event conn_fd_ev;
+    conn_fd_ev.data.fd = conn_fd;
+    conn_fd_ev.events = EPOLLIN | EPOLLET;
+    this->add_to_poller(conn_fd, conn_fd_ev);
 
     return 0;
 }
 
-int EventLoop::biz_routine(epoll_event &event, char* read_buffer, int buffer_size, int read_size){
-    EpollContext *epoll_context = (EpollContext *)event.data.ptr;
-    // LOG(INFO) << "epoll_context fd: " << epoll_context->fd;
+int EventLoop::biz_routine(EpollContext *epoll_context, char* read_buffer, int buffer_size, int read_size){
     int fd = epoll_context->fd;
-    // int fd = event.data.fd;
-    // LOG(INFO) << "event.data fd: " << event.data.fd;
     int handle_ret = 0;
     if (read_size > 0)
     {
         LOG(INFO) << "read success which read size: " << read_size;
         handle_ret = socket_watcher_->on_readable(*epoll_context, read_buffer, buffer_size, read_size);
     }
+    struct epoll_event event;
+    event.data.fd = fd;
     if (read_size <= 0 || handle_ret < 0)
     {
-        this->close_and_release(event);
+        this->close_and_release(fd);
         return 0;
     }
     if (handle_ret == READ_CONTINUE)
@@ -191,35 +184,46 @@ int EventLoop::biz_routine(epoll_event &event, char* read_buffer, int buffer_siz
     return 0;
 }
 
-int EventLoop::handle_readable_event(epoll_event &event){
-    EpollContext *epoll_context = (EpollContext *)event.data.ptr;
-    // LOG(INFO) << "epoll_context fd: " << epoll_context->fd;
-    // LOG(INFO) << "event.data fd: " << event.data.fd;
-    int fd = epoll_context->fd;
+int EventLoop::handle_readable_event(int fd){
+    // 从map中找，如果没找到，直接fatal
+    auto fd_iter = fd2context_.find(fd);
+    if(fd_iter == fd2context_.end()){
+        LOG(FATAL) << "can not find fd in eventloop";
+        return -1;
+    }
+    
+    EpollContext *epoll_context = fd_iter->second;
+    assert(epoll_context->ptr != NULL);
     int buffer_size = SS_READ_BUFFER_SIZE;
     char read_buffer[buffer_size];
     memset(read_buffer, 0, buffer_size);
     // int read_size = recv(fd, read_buffer, buffer_size, 0);
+    assert(fd == epoll_context->fd);
     int read_size = SocketUtils::readn(fd, read_buffer, buffer_size);
-
-    // 异步
-    // 先抽出一个函数出来
-    this->biz_routine(event, read_buffer, buffer_size, read_size);
+    this->biz_routine(epoll_context, read_buffer, buffer_size, read_size);
     return 0;
 }
 
-int EventLoop::handle_writeable_event(epoll_event &event){
-    EpollContext *epoll_context = (EpollContext *)event.data.ptr;
-    int fd = epoll_context->fd;
+int EventLoop::handle_writeable_event(int fd){
+    // 从map中找，如果没找到，直接fatal
+    auto fd_iter = fd2context_.find(fd);
+    if(fd_iter == fd2context_.end()){
+        LOG(FATAL) << "can not find fd in eventloop";
+        return -1;
+    }
+    EpollContext *epoll_context = fd_iter->second;
+    // int fd = epoll_context->fd;
+    assert(fd == epoll_context->fd);
     LOG(INFO) << "start write data";
 
     int ret = socket_watcher_->on_writeable(*epoll_context);
     if (ret == WRITE_CONN_CLOSE)
     {
-        close_and_release(event);  // 断开
+        close_and_release(fd);  // 断开
         return 0;
     }
-
+    struct epoll_event event;
+    event.data.fd = fd;
     if (ret == WRITE_CONN_CONTINUE)
     {
         event.events = EPOLLOUT | EPOLLET;
