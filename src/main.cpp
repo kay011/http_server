@@ -31,7 +31,6 @@ void register_router(HttpServer& http_server){
 
 void DumpTraceback(int Signal){
     print_stacktrace();
-    printf("exit");
     _exit(1);
 }
 int SigHandle()
@@ -58,6 +57,7 @@ int SigHandle()
 int main(int argc, char *argv[])
 {
     init();
+	SigHandle();
     HttpServer http_server(3490);
     register_router(http_server);
     http_server.start();
