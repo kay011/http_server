@@ -11,6 +11,6 @@
 #define READ_OVER 0
 #define READ_CONTINUE 1
 
-#define EXPIRE_TIME 6000 // 600s
+#define EXPIRE_TIME 6000  // 600s
 
 #endif
