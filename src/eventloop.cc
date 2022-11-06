@@ -6,7 +6,9 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>
-#include <pthread.h>
+#include "thread_pool.hpp"
+
+// extern ThreadPool g_work_pool;
 
 EventLoop::EventLoop(){
     poller_ = std::make_shared<Epoll>();
@@ -180,13 +182,14 @@ int EventLoop::handle_readable_event(int fd){
     // int read_size = recv(fd, read_buffer, buffer_size, 0);
     assert(fd == epoll_context->fd);
     epoll_context->read_size = SocketUtils::readn(fd, epoll_context->read_buffer, epoll_context->buffer_size);
-    pthread_t tid;
-    int ret = pthread_create(&tid, NULL, biz_routine, epoll_context);
-    if(ret != 0){
-        LOG(FATAL) << "pthread_create err";
-    }
-    pthread_detach(tid);
+    // pthread_t tid;
+    // int ret = pthread_create(&tid, NULL, biz_routine, epoll_context);
+    // if(ret != 0){
+    //     LOG(FATAL) << "pthread_create err";
+    // }
+    // pthread_detach(tid);
     // biz_routine(epoll_context);
+    g_work_pool.enqueue(biz_routine, epoll_context);
     return 0;
 }
 

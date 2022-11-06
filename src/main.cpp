@@ -5,6 +5,7 @@
 #include "http_handler.h"
 #include "stacktrace.h"
 #include <signal.h>
+#include "thread_pool.hpp"
 
 INITIALIZE_EASYLOGGINGPP
 
@@ -53,6 +54,8 @@ int SigHandle()
 
 	return 0;
 }
+
+ThreadPool g_work_pool(16);  // 业务线程池
 /*****   main ****/
 int main(int argc, char *argv[])
 {
