@@ -39,5 +39,5 @@ class EventLoop {
   std::map<int, EpollContext*> fd2context_;
   TimerManager timer_manager_;
 };
-void* biz_routine(void* args);
+void biz_routine(void* args);
 #endif

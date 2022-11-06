@@ -1,5 +1,7 @@
 #ifndef EVENT_EPOLL_H
 #define EVENT_EPOLL_H
+#include <sys/epoll.h>
+
 #include "stdint.h"
 
 class Epoll {

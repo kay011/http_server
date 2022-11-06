@@ -1,7 +1,5 @@
 #include "event_epoll.h"
 
-#include <sys/epoll.h>
-
 #include "easylogging++.h"
 
 Epoll::Epoll() {

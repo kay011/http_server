@@ -118,17 +118,18 @@ int listen_on(int port, int backlog) {
   return listen_fd;
 }
 
-int accept_socket(int listenfd, std::string &client_ip) {
+int accept_socket(int listenfd, std::string &client_ip, int &port) {
   int new_fd;
-  struct sockaddr_in their_addr; /* connector's address information */
+  struct sockaddr_in client_addr; /* connector's address information */
   socklen_t sin_size = sizeof(struct sockaddr_in);
 
-  if ((new_fd = accept(listenfd, (struct sockaddr *)&their_addr, &sin_size)) == -1) {
+  if ((new_fd = accept(listenfd, (struct sockaddr *)&client_addr, &sin_size)) == -1) {
     LOG(FATAL) << "accept listen err";
     return -1;
   }
 
-  client_ip = inet_ntoa(their_addr.sin_addr);
+  client_ip = inet_ntoa(client_addr.sin_addr);
+  port = ntohs(client_addr.sin_port);
   LOG(INFO) << "server: got connection from " << client_ip.c_str();
   return new_fd;
 }

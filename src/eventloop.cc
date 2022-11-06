@@ -96,7 +96,7 @@ int EventLoop::close_and_release(int fd) {
     __close_and_release(hc);
     fd2context_.erase(fd_iter);
   }
-  LOG(INFO) << "connect close";
+  LOG(INFO) << "fd: " << fd << " connect close";
   return 0;
 }
 
@@ -126,26 +126,22 @@ int EventLoop::handle_accept_event(int fd) {
   int listenfd = fd;
 
   std::string client_ip;
-  int conn_fd = SocketUtils::accept_socket(listenfd, client_ip);
+  int client_port;
+  int conn_fd = SocketUtils::accept_socket(listenfd, client_ip, client_port);
   if (conn_fd == -1) {
     return -1;
   }
   SocketUtils::set_nonblocking(conn_fd);
-  LOG(INFO) << "get accept socket which listen fd:" << listenfd << ",conn_fd: " << conn_fd;
+  LOG(INFO) << "get accept socket which listen fd:" << listenfd << ",conn_fd: " << conn_fd << "client_ip: " << client_ip
+            << "client_port: " << client_port;
 
-  EpollContext* epoll_context = new EpollContext();
+  EpollContext* epoll_context = new EpollContext();  // 构建上下文
   epoll_context->fd = conn_fd;
   epoll_context->client_ip = client_ip;
   epoll_context->loop = this;
   this->fd2context_[conn_fd] = epoll_context;  // 交由 eventloop 管理
-
-  socket_watcher_->on_accept(*epoll_context);
-
-  // struct epoll_event conn_fd_ev;
-  // conn_fd_ev.data.fd = conn_fd;
-  // conn_fd_ev.events = EPOLLIN | EPOLLET;
+  this->socket_watcher_->on_accept(*epoll_context);
   this->add_to_poller(conn_fd, EPOLLIN | EPOLLET);
-
   return 0;
 }
 
@@ -162,16 +158,10 @@ int EventLoop::handle_readable_event(int fd) {
   epoll_context->buffer_size = SS_READ_BUFFER_SIZE;
   epoll_context->read_buffer = new char[epoll_context->buffer_size];
   memset(epoll_context->read_buffer, 0, epoll_context->buffer_size);
-  // int read_size = recv(fd, read_buffer, buffer_size, 0);
   assert(fd == epoll_context->fd);
   epoll_context->read_size = SocketUtils::readn(fd, epoll_context->read_buffer, epoll_context->buffer_size);
-  // pthread_t tid;
-  // int ret = pthread_create(&tid, NULL, biz_routine, epoll_context);
-  // if(ret != 0){
-  //     LOG(FATAL) << "pthread_create err";
-  // }
-  // pthread_detach(tid);
-  // biz_routine(epoll_context);
+
+  // async
   g_work_pool.enqueue(biz_routine, epoll_context);
   return 0;
 }
@@ -206,8 +196,6 @@ int EventLoop::handle_writeable_event(int fd) {
 }
 
 int EventLoop::handle_timeout_event() {
-  LOG(INFO) << "yhd access handle_timeout_event";
-  LOG(INFO) << "yhd timer_manager_.size(): " << timer_manager_.size();
   while (timer_manager_.size() > 0) {
     // 先取出top
     TimeNode tn = timer_manager_.GetNearbyTimeNode();
@@ -234,7 +222,7 @@ int EventLoop::handle_timeout_event() {
   return 0;
 }
 
-void* biz_routine(void* args) {
+void biz_routine(void* args) {
   EpollContext* epoll_context = (EpollContext*)args;
   assert(epoll_context != NULL);
   EventLoop* loop = epoll_context->loop;
@@ -249,7 +237,7 @@ void* biz_routine(void* args) {
   }
   if (read_size <= 0 || handle_ret < 0) {
     loop->close_and_release(fd);
-    return 0;
+    return;
   }
   uint32_t events;
   if (handle_ret == READ_CONTINUE) {
