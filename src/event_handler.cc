@@ -4,12 +4,12 @@
 
 #include "unistd.h"
 
-void HttpEventHandler::add_mapping(std::string path, method_handler_callback handler, HttpMethod method) {
+void HttpEventHandler::add_mapping(const std::string& path, method_handler_callback handler, HttpMethod method) {
   Resource resource = {method, handler, nullptr};
   resource_map_[path] = resource;
 }
 
-void HttpEventHandler::add_mapping(std::string path, json_handler_callback handler, HttpMethod method) {
+void HttpEventHandler::add_mapping(const std::string& path, json_handler_callback handler, HttpMethod method) {
   Resource resource = {method, nullptr, handler};
   resource_map_[path] = resource;
 }
@@ -50,7 +50,6 @@ int HttpEventHandler::handle_request(std::shared_ptr<Request> request, std::shar
 
 int HttpEventHandler::on_accept(std::shared_ptr<EpollContext> epoll_context) {
   int conn_sock = epoll_context->fd;
-  // epoll_context.ptr = new HttpContext(conn_sock);
   epoll_context->ptr = std::shared_ptr<HttpContext>(new HttpContext(conn_sock), [](HttpContext* hc) { delete hc; });
   return 0;
 }
@@ -92,7 +91,6 @@ int HttpEventHandler::on_writeable(std::shared_ptr<EpollContext> epoll_context) 
   // 2. write bytes to socket
   int nwrite = send(fd, buffer, read_size, 0);
   if (nwrite < 0) {
-    // perror("send fail!");
     return WRITE_CONN_CLOSE;
   }
   // 3. when not write all buffer, we will rollback write index
@@ -122,13 +120,6 @@ int HttpEventHandler::on_writeable(std::shared_ptr<EpollContext> epoll_context) 
 }
 
 int HttpEventHandler::on_close(std::shared_ptr<EpollContext> epoll_context) {
-  // if (epoll_context.ptr == NULL) {
-  //   return 0;
-  // }
-  // HttpContext *hc = (HttpContext *)epoll_context.ptr;
-  // if (hc != NULL) {
-  //   delete hc;
-  //   hc = NULL;
-  // }
+  // TODO
   return 0;
 }

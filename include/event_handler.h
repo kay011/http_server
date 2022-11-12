@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "easylogging++.h"
 #include "global.h"
@@ -15,17 +16,10 @@ struct EpollContext {
   int fd;
   std::string client_ip;
 
-  char *read_buffer;  //
-  int buffer_size;
+  std::vector<char> read_buffer;
   int read_size;
   EventLoop *loop;
   long nearest_active_time;
-  ~EpollContext() {
-    if (read_buffer != NULL) {
-      delete read_buffer;
-      read_buffer = NULL;
-    }
-  }
 };
 
 class EventHandlerIface {
@@ -40,8 +34,8 @@ class EventHandlerIface {
 // impl
 class HttpEventHandler : public EventHandlerIface {
  public:
-  void add_mapping(std::string path, method_handler_callback handler, HttpMethod method);
-  void add_mapping(std::string path, json_handler_callback handler, HttpMethod method);
+  void add_mapping(const std::string &path, method_handler_callback handler, HttpMethod method);
+  void add_mapping(const std::string &path, json_handler_callback handler, HttpMethod method);
 
  private:
   int handle_request(std::shared_ptr<Request> request, std::shared_ptr<Response> response);

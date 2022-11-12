@@ -12,12 +12,12 @@
 #include "sys/epoll.h"
 class HttpServer {
  public:
-  HttpServer(int port);
-  ~HttpServer();
-  void post(std::string path, method_handler_callback handler);
-  void post(std::string path, json_handler_callback handler);
-  void get(std::string path, method_handler_callback handler);
-  void get(std::string path, json_handler_callback handler);
+  explicit HttpServer(int port);
+  ~HttpServer() = default;
+  void post(const std::string& path, const method_handler_callback& handler);
+  void post(const std::string& path, const json_handler_callback& handler);
+  void get(const std::string& path, const method_handler_callback& handler);
+  void get(const std::string& path, const json_handler_callback& handler);
 
   int start();
 

@@ -25,8 +25,9 @@ class EventLoop {
   int handle_readable_event(int fd);
   int handle_writeable_event(int fd);
 
+  int calc_timeout();
   int handle_timeout_event();
-  int __close_and_release(std::shared_ptr<EpollContext> context);
+  int _close_and_release(std::shared_ptr<EpollContext> context);
 
  public:
   EventHandlerIface* get_socket_watcher() const { return socket_watcher_; }
