@@ -44,10 +44,10 @@ class HttpEventHandler : public EventHandlerIface {
   void add_mapping(std::string path, json_handler_callback handler, HttpMethod method);
 
  private:
-  int handle_request(Request &request, Response &response);
+  int handle_request(std::shared_ptr<Request> request, std::shared_ptr<Response> response);
 
  public:
-  virtual ~HttpEventHandler() {}
+  virtual ~HttpEventHandler() = default;
   int on_accept(std::shared_ptr<EpollContext> epoll_context) override;
   int on_readable(std::shared_ptr<EpollContext> epoll_context, char *read_buffer, int buffer_size,
                   int read_size) override;

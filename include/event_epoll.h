@@ -7,7 +7,7 @@
 class Epoll {
  public:
   Epoll();
-  ~Epoll();
+  ~Epoll() = default;
 
   int poller(epoll_event* events, int max_events, int timeout);
   void add_to_poller(int fd, uint32_t events);

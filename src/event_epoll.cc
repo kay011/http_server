@@ -8,8 +8,6 @@ Epoll::Epoll() {
     LOG(FATAL) << "epoll_create err";
   }
 }
-
-Epoll::~Epoll() {}
 int Epoll::poller(epoll_event* events, int max_events, int timeout) {
   // TODO
   int fds_num = epoll_wait(epoll_fd_, events, max_events, timeout);

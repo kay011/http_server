@@ -5,6 +5,7 @@
 
 #include <functional>
 #include <map>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -160,8 +161,8 @@ class Response {
 
 class HttpContext {
  private:
-  Response *res;
-  Request *req;
+  std::shared_ptr<Request> req_;
+  std::shared_ptr<Response> resp_;
 
  public:
   int fd;
@@ -169,11 +170,11 @@ class HttpContext {
 
   HttpContext(int fd) {
     this->fd = fd;
-    req = new Request();
-    res = new Response();
+    req_ = std::make_shared<Request>();
+    resp_ = std::make_shared<Response>();
   }
 
-  ~HttpContext() { delete_req_res(); }
+  ~HttpContext() = default;
 
   int record_start_time() {
     gettimeofday(&start, NULL);
@@ -188,41 +189,23 @@ class HttpContext {
   }
 
   void print_access_log(std::string &client_ip) {
-    std::string http_method = this->req->line.method;
-    std::string request_url = this->req->line.request_url;
+    std::string http_method = this->req_->line.method;
+    std::string request_url = this->req_->line.request_url;
     int cost_time = get_cost_time();
     LOG(INFO) << "access_log " << http_method.c_str() << " " << request_url.c_str() << " "
-              << "status_code:" << res->code_msg.status_code << " "
+              << "status_code:" << resp_->code_msg.status_code << " "
               << "cost_time:" << cost_time << "us, "
-              << "body_size:" << res->body.size() << ", "
+              << "body_size:" << resp_->body.size() << ", "
               << "client_ip:" << client_ip.c_str();
-    // printf("access_log %s %s status_code:%d cost_time:%d us, body_size:%d,
-    // client_ip:%s\n",
-    //         http_method.c_str(), request_url.c_str(),
-    //         res->code_msg.status_code, cost_time, res->body.size(),
-    //         client_ip.c_str());
-  }
-
-  inline void delete_req_res() {
-    if (req != NULL) {
-      delete req;
-      req = NULL;
-    }
-    if (res != NULL) {
-      delete res;
-      res = NULL;
-    }
   }
 
   void clear() {
-    delete_req_res();
-    req = new Request();
-    res = new Response();
+    req_ = std::make_shared<Request>();
+    resp_ = std::make_shared<Response>();
   }
 
-  Response &get_res() { return *res; }
-
-  Request &get_requset() { return *req; }
+  std::shared_ptr<Response> get_resp() { return resp_; }
+  std::shared_ptr<Request> get_requset() { return req_; }
 };
 
 #endif /* HTTP_PARSER_H_ */
