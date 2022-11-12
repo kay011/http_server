@@ -28,7 +28,7 @@ void Epoll::update_to_poller(int fd, uint32_t events) {
   ev.data.fd = fd;
   ev.events = events;
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, fd, &ev) == -1) {
-    LOG(ERROR) << "epoll_ctl add err";
+    LOG(ERROR) << "epoll_ctl update err";
   }
 }
 void Epoll::remove_from_poller(int fd, uint32_t events) {
@@ -36,6 +36,6 @@ void Epoll::remove_from_poller(int fd, uint32_t events) {
   ev.data.fd = fd;
   ev.events = events;
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, &ev) == -1) {
-    LOG(ERROR) << "epoll_ctl add err";
+    LOG(ERROR) << "epoll_ctl del err";
   }
 }

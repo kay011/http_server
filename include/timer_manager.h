@@ -3,17 +3,19 @@
 
 #include <chrono>
 #include <iostream>
+#include <memory>
 #include <queue>
 #include <sstream>
 #include <vector>
 
 #include "easylogging++.h"
+#include "utils.h"
 using namespace std;
-
+// class EpollContext;
 struct TimeNode {
-  void* ptr_;
+  std::shared_ptr<EpollContext> ptr_;
   long last_active_time_;
-  TimeNode(void* ptr, long last_active_time) : ptr_(ptr), last_active_time_(last_active_time) {}
+  TimeNode(std::shared_ptr<EpollContext> ptr, long last_active_time) : ptr_(ptr), last_active_time_(last_active_time) {}
   bool operator<(const TimeNode& rhs) const {
     if (this->last_active_time_ < rhs.last_active_time_) {
       return true;
@@ -30,12 +32,9 @@ struct TimeNode {
 
 class TimerManager {
  public:
-  void AddToTimer(void* ptr) {
-    std::chrono::milliseconds ms =
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
-    LOG(INFO) << "timestamp: " << ms.count();
-    pq.push(TimeNode(ptr, ms.count()));
-    LOG(INFO) << "pq.size: " << pq.size();
+  void AddToTimer(long timestamp, std::shared_ptr<EpollContext> ptr) {
+    LOG(INFO) << "AddToTimer timestamp: " << timestamp;
+    pq.push(TimeNode(ptr, timestamp));
   }
   const TimeNode& GetNearbyTimeNode() {
     const TimeNode& timeNode = pq.top();

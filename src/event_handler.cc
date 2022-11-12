@@ -48,14 +48,16 @@ int HttpEventHandler::handle_request(Request &req, Response &res) {
   return 0;
 }
 
-int HttpEventHandler::on_accept(EpollContext &epoll_context) {
-  int conn_sock = epoll_context.fd;
-  epoll_context.ptr = new HttpContext(conn_sock);
+int HttpEventHandler::on_accept(std::shared_ptr<EpollContext> epoll_context) {
+  int conn_sock = epoll_context->fd;
+  // epoll_context.ptr = new HttpContext(conn_sock);
+  epoll_context->ptr = std::shared_ptr<HttpContext>(new HttpContext(conn_sock), [](HttpContext *hc) { delete hc; });
   return 0;
 }
 
-int HttpEventHandler::on_readable(EpollContext &epoll_context, char *read_buffer, int buffer_size, int read_size) {
-  HttpContext *http_context = (HttpContext *)epoll_context.ptr;
+int HttpEventHandler::on_readable(std::shared_ptr<EpollContext> epoll_context, char *read_buffer, int buffer_size,
+                                  int read_size) {
+  std::shared_ptr<HttpContext> http_context = std::static_pointer_cast<HttpContext>(epoll_context->ptr);
   if (http_context->get_requset().parse_part == PARSE_REQ_LINE) {
     http_context->record_start_time();
   }
@@ -70,9 +72,9 @@ int HttpEventHandler::on_readable(EpollContext &epoll_context, char *read_buffer
   return 0;
 }
 
-int HttpEventHandler::on_writeable(EpollContext &epoll_context) {
-  int fd = epoll_context.fd;
-  HttpContext *hc = (HttpContext *)epoll_context.ptr;
+int HttpEventHandler::on_writeable(std::shared_ptr<EpollContext> epoll_context) {
+  int fd = epoll_context->fd;
+  std::shared_ptr<HttpContext> hc = std::static_pointer_cast<HttpContext>(epoll_context->ptr);
   Response &res = hc->get_res();
   bool is_keepalive = (strcasecmp(hc->get_requset().get_header("Connection").c_str(), "keep-alive") == 0);
 
@@ -109,7 +111,7 @@ int HttpEventHandler::on_writeable(EpollContext &epoll_context) {
   }
 
   if (print_access_log) {
-    hc->print_access_log(epoll_context.client_ip);
+    hc->print_access_log(epoll_context->client_ip);
   }
 
   if (is_keepalive && nwrite > 0) {
@@ -119,14 +121,14 @@ int HttpEventHandler::on_writeable(EpollContext &epoll_context) {
   return WRITE_CONN_CLOSE;
 }
 
-int HttpEventHandler::on_close(EpollContext &epoll_context) {
-  if (epoll_context.ptr == NULL) {
-    return 0;
-  }
-  HttpContext *hc = (HttpContext *)epoll_context.ptr;
-  if (hc != NULL) {
-    delete hc;
-    hc = NULL;
-  }
+int HttpEventHandler::on_close(std::shared_ptr<EpollContext> epoll_context) {
+  // if (epoll_context.ptr == NULL) {
+  //   return 0;
+  // }
+  // HttpContext *hc = (HttpContext *)epoll_context.ptr;
+  // if (hc != NULL) {
+  //   delete hc;
+  //   hc = NULL;
+  // }
   return 0;
 }

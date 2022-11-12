@@ -26,7 +26,7 @@ class EventLoop {
   int handle_writeable_event(int fd);
 
   int handle_timeout_event();
-  int __close_and_release(EpollContext* context);
+  int __close_and_release(std::shared_ptr<EpollContext> context);
 
  public:
   EventHandlerIface* get_socket_watcher() const { return socket_watcher_; }
@@ -36,8 +36,8 @@ class EventLoop {
   EventHandlerIface* socket_watcher_;
   std::shared_ptr<Epoll> poller_;
 
-  std::map<int, EpollContext*> fd2context_;
+  std::map<int, std::shared_ptr<EpollContext>> fd2context_;
   TimerManager timer_manager_;
 };
-void biz_routine(void* args);
+void biz_routine(std::shared_ptr<EpollContext> epoll_context);
 #endif

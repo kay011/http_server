@@ -27,34 +27,24 @@ void EventLoop::loop() {
   epoll_event* events = new epoll_event[max_events];
   while (true) {
     // 定时事件
-    // 从一个map中取最近即将超时的事件
-    // for(auto it = fd2expire_time_.begin(); it != fd2expire_time_.end();
-    // ++it){
-    //     LOG(INFO) << "fd: " <<it->first << "-" << "expire_time: " <<
-    //     it->second;
-    // }
-    // LOG(INFO) << "yhd_size: " <<fd2expire_time_.size();
     int timeout = -1;
-    // LOG(INFO) << "timer_manager_.size(): " << timer_manager_.size();
-    // if(timer_manager_.size() > 0){
-    //     LOG(INFO) << "yhd_test";
-    //     TimeNode tn = timer_manager_.GetNearbyTimeNode();
-    //     std::chrono::milliseconds now_ms = std::chrono::duration_cast<
-    //     std::chrono::milliseconds >(
-    //         std::chrono::system_clock::now().time_since_epoch());
-    //     long diff_time = now_ms.count() - tn.last_active_time_;
-    //     LOG(INFO) << "yhd diff_time: " << diff_time;
-    //     if (diff_time - EXPIRE_TIME >= 0) // 说明已经有超时事件了
-    //     {
-    //         timeout = 0;
-    //     } else {    // 说明最近的还没有超时
-    //         timeout = EXPIRE_TIME - diff_time;
-    //     }
-    // }
+    LOG(INFO) << "timer_manager_.size(): " << timer_manager_.size();
+    if (timer_manager_.size() > 0) {
+      TimeNode tn = timer_manager_.GetNearbyTimeNode();
+      long unix_now = SocketUtils::unix_now_millisecond();
+      long diff_time = unix_now - tn.last_active_time_;
+      LOG(INFO) << "yhd diff_time: " << diff_time;
+      if (diff_time - EXPIRE_TIME >= 0)  // 说明已经有超时事件了
+      {
+        timeout = 100;
+      } else {  // 说明最近的还没有超时
+        timeout = EXPIRE_TIME - diff_time;
+      }
+    }
     LOG(INFO) << "timeout: " << timeout;
     int fds_num = this->poller_->poller(events, max_events, timeout);
     // int fds_num = epoll_wait(this->get_epoll_fd(), events, max_events, -1);
-    // LOG(INFO) << "fds_num" << fds_num;
+    LOG(INFO) << "fds_num" << fds_num;
     if (fds_num == -1) {
       LOG(ERROR) << "epoll_wait err";
     }
@@ -75,7 +65,7 @@ void EventLoop::loop() {
     }
 
     // 处理时间事件
-    // this->handle_timeout_event();
+    this->handle_timeout_event();
   }
 
   if (events != NULL) {
@@ -91,32 +81,37 @@ void EventLoop::remove_from_poller(int fd, uint32_t events) { poller_->remove_fr
 int EventLoop::close_and_release(int fd) {
   auto fd_iter = fd2context_.find(fd);
   if (fd_iter != fd2context_.end()) {
-    EpollContext* hc = fd_iter->second;
+    auto hc = fd_iter->second;
+    // assert(hc != NULL);
+    if (hc == NULL) {
+      fd2context_.erase(fd_iter);
+      return 0;
+    }
     assert(hc != NULL);
+    assert(hc->fd == fd);
     __close_and_release(hc);
-    fd2context_.erase(fd_iter);
   }
   LOG(INFO) << "fd: " << fd << " connect close";
   return 0;
 }
 
-int EventLoop::__close_and_release(EpollContext* context) {
+int EventLoop::__close_and_release(std::shared_ptr<EpollContext> context) {
   LOG(INFO) << "access __close_and_release";
-  socket_watcher_->on_close(*context);
+  //  this->socket_watcher_->on_close(context);
   int fd = context->fd;
 
   uint32_t events = EPOLLIN | EPOLLOUT | EPOLLET;
   this->remove_from_poller(fd, events);
   // epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, &event);
   // 删除read_buffer;
-  if (context->read_buffer != NULL) {
-    delete context->read_buffer;
-    context->read_buffer = NULL;
-  }
-  if (context != NULL) {
-    delete context;
-    context = NULL;
-  }
+  //  if (context->read_buffer != NULL) {
+  //    delete context->read_buffer;
+  //    context->read_buffer = NULL;
+  //  }
+  //  LOG(INFO) << "yhd_test";
+  //  delete context;
+  //  context = NULL;
+  //  LOG(INFO) << "yhd_test2";
   int ret = close(fd);
   LOG(INFO) << "connect close complete which fd: " << fd << ", ret: " << ret;
   return ret;
@@ -133,15 +128,19 @@ int EventLoop::handle_accept_event(int fd) {
   }
   SocketUtils::set_nonblocking(conn_fd);
   LOG(INFO) << "get accept socket which listen fd:" << listenfd << ",conn_fd: " << conn_fd << "client_ip: " << client_ip
-            << "client_port: " << client_port;
+            << " client_port: " << client_port;
 
-  EpollContext* epoll_context = new EpollContext();  // 构建上下文
-  epoll_context->fd = conn_fd;
-  epoll_context->client_ip = client_ip;
-  epoll_context->loop = this;
-  this->fd2context_[conn_fd] = epoll_context;  // 交由 eventloop 管理
-  this->socket_watcher_->on_accept(*epoll_context);
+  // EpollContext* epoll_context = new EpollContext();  // 构建上下文
+  this->fd2context_[conn_fd] = make_shared<EpollContext>();
+  this->fd2context_[conn_fd]->fd = conn_fd;
+  this->fd2context_[conn_fd]->client_ip = client_ip;
+  this->fd2context_[conn_fd]->loop = this;
+  this->fd2context_[conn_fd]->nearest_active_time = SocketUtils::unix_now_millisecond();
+  this->socket_watcher_->on_accept(this->fd2context_[conn_fd]);
   this->add_to_poller(conn_fd, EPOLLIN | EPOLLET);
+
+  // 加入定时器容器
+  this->timer_manager_.AddToTimer(this->fd2context_[conn_fd]->nearest_active_time, this->fd2context_[conn_fd]);
   return 0;
 }
 
@@ -153,8 +152,9 @@ int EventLoop::handle_readable_event(int fd) {
     return -1;
   }
 
-  EpollContext* epoll_context = fd_iter->second;
+  auto epoll_context = fd_iter->second;
   assert(epoll_context->ptr != NULL);
+  epoll_context->nearest_active_time = SocketUtils::unix_now_millisecond();
   epoll_context->buffer_size = SS_READ_BUFFER_SIZE;
   epoll_context->read_buffer = new char[epoll_context->buffer_size];
   memset(epoll_context->read_buffer, 0, epoll_context->buffer_size);
@@ -173,12 +173,12 @@ int EventLoop::handle_writeable_event(int fd) {
     LOG(FATAL) << "can not find fd in eventloop";
     return -1;
   }
-  EpollContext* epoll_context = fd_iter->second;
+  auto epoll_context = fd_iter->second;
   // int fd = epoll_context->fd;
   assert(fd == epoll_context->fd);
   LOG(INFO) << "start write data";
-
-  int ret = socket_watcher_->on_writeable(*epoll_context);
+  epoll_context->nearest_active_time = SocketUtils::unix_now_millisecond();
+  int ret = socket_watcher_->on_writeable(epoll_context);
   if (ret == WRITE_CONN_CLOSE) {
     close_and_release(fd);  // 断开
     return 0;
@@ -196,35 +196,39 @@ int EventLoop::handle_writeable_event(int fd) {
 }
 
 int EventLoop::handle_timeout_event() {
+  LOG(INFO) << "access handle_timeout_event";
   while (timer_manager_.size() > 0) {
     // 先取出top
     TimeNode tn = timer_manager_.GetNearbyTimeNode();
-    std::chrono::milliseconds now_ms =
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
-    long diff_time = now_ms.count() - tn.last_active_time_;
-    LOG(INFO) << "diff_time: " << diff_time;
-    if (diff_time - EXPIRE_TIME >= 0) {
-      if (tn.ptr_ == NULL) {
-        timer_manager_.PopTopTimeNode();
-        continue;
-      }
-      EpollContext* context = (EpollContext*)tn.ptr_;
-      // 断开连接
-      __close_and_release(context);
+    if (tn.ptr_ == NULL) {
+      timer_manager_.PopTopTimeNode();
+      LOG(INFO) << "testtest";
+      continue;
+    }
+    LOG(INFO) << "yhd test1";
+    auto epoll_context = tn.ptr_;
+    // 如果最近活跃时间 - now >= EXPIRE_TIME, 直接删除
+    long unix_now = SocketUtils::unix_now_millisecond();
+    if (unix_now - epoll_context->nearest_active_time >= EXPIRE_TIME) {
+      LOG(INFO) << "del conn fd: " << epoll_context->fd;
+      __close_and_release(epoll_context);
       // 清理内存
-      fd2context_.erase(context->fd);
+      fd2context_.erase(epoll_context->fd);
 
       timer_manager_.PopTopTimeNode();
     } else {
-      break;
+      if (epoll_context->nearest_active_time > tn.last_active_time_) {
+        timer_manager_.PopTopTimeNode();
+        timer_manager_.AddToTimer(epoll_context->nearest_active_time, epoll_context);
+      } else {  // epoll_context->nearest_active_time == tn.last_active_time_ 且没超时
+        break;
+      }
     }
   }
   return 0;
 }
 
-void biz_routine(void* args) {
-  EpollContext* epoll_context = (EpollContext*)args;
-  assert(epoll_context != NULL);
+void biz_routine(std::shared_ptr<EpollContext> epoll_context) {
   EventLoop* loop = epoll_context->loop;
   char* read_buffer = epoll_context->read_buffer;
   int buffer_size = epoll_context->buffer_size;
@@ -233,7 +237,7 @@ void biz_routine(void* args) {
   int handle_ret = 0;
   if (read_size > 0) {
     LOG(INFO) << "read success which read size: " << read_size;
-    handle_ret = loop->get_socket_watcher()->on_readable(*epoll_context, read_buffer, buffer_size, read_size);
+    handle_ret = loop->get_socket_watcher()->on_readable(epoll_context, read_buffer, buffer_size, read_size);
   }
   if (read_size <= 0 || handle_ret < 0) {
     loop->close_and_release(fd);

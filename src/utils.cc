@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <sys/fcntl.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -132,5 +133,10 @@ int accept_socket(int listenfd, std::string &client_ip, int &port) {
   port = ntohs(client_addr.sin_port);
   LOG(INFO) << "server: got connection from " << client_ip.c_str();
   return new_fd;
+}
+long unix_now_millisecond() {
+  struct timeval tv;
+  gettimeofday(&tv, nullptr);
+  return tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
 }  // namespace SocketUtils
