@@ -12,18 +12,8 @@
 INITIALIZE_EASYLOGGINGPP
 
 void init() {
-  //   el::Configurations conf("/root/git_root/http_server_demo/conf/log.conf");
-  //   el::Loggers::reconfigureAllLoggers(conf);
-
-  //   el::Logger* defaultLogger = el::Loggers::getLogger("default");
-  el::Configurations conf;
-  conf.setToDefault();
-  conf.setGlobally(el::ConfigurationType::Format, "[%file:%line:%thread][%datetime{%H:%m:%s} | %level] %msg");
-  conf.setGlobally(el::ConfigurationType::Filename, "log_%datetime{%Y%M%d}.log");
-  conf.setGlobally(el::ConfigurationType::Enabled, "true");
-  conf.setGlobally(el::ConfigurationType::ToFile, "false");
+  el::Configurations conf("./conf/log.conf");
   el::Loggers::reconfigureAllLoggers(conf);
-  el::Loggers::reconfigureAllLoggers(el::ConfigurationType::ToStandardOutput, "true");
 }
 
 void register_router(HttpServer& http_server) {
